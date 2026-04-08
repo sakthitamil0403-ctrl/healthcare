@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+scikit-learn
+pandas
+numpy
+python-dotenv
+
+multilingual-voice-deps:
+speechrecognition
+pydub
+googletrans==4.0.0-rc1
