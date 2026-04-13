@@ -22,6 +22,7 @@ export default function ProfileScreen({ route, navigation }) {
     
     // Auth profile data
     const [name, setName] = useState(user?.name || '');
+    const [phone, setPhone] = useState(user?.phone || '');
     const [image, setImage] = useState(user?.image || '');
     
     // Patient clinical data
@@ -80,7 +81,7 @@ export default function ProfileScreen({ route, navigation }) {
     const handleSave = async () => {
         setSaving(true);
         try {
-            await authService.updateProfile({ name, image });
+            await authService.updateProfile({ name, phone, image });
             
             if (user?.role === 'patient') {
                 const historyArray = medicalHistory.split(',').map(item => item.trim()).filter(item => item !== '');
@@ -154,6 +155,9 @@ export default function ProfileScreen({ route, navigation }) {
                     
                     <Text style={styles.label}>Full Name</Text>
                     <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="John Doe" />
+                    
+                    <Text style={styles.label}>Phone Number</Text>
+                    <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="+91 9876543210" keyboardType="phone-pad" />
                     
                     <Text style={styles.label}>Email Address</Text>
                     <TextInput style={[styles.input, styles.readOnly]} value={user?.email || ''} editable={false} />

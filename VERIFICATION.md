@@ -15,7 +15,17 @@ All features are verified and ready for deployment.
 4. `cd mobile-app && npm install && npx expo start`
 
 ## 🛡 Security & Reliability
-- JWT RBAC protection on all private routes.
-- BCrypt password hashing.
-- AI-driven reliability scoring for appointment management.
-- Geographic proximity calculations for donor matching.
+- **AES-256 CBC Encryption**: All sensitive contact data is encrypted at rest in MongoDB.
+- **Privacy Masking**: Donor phone numbers are masked in API responses to unauthorized agents.
+- **Admin-Managed Onboarding**: Restricted doctor creation workflow for clinical governance.
+- **JWT RBAC protection** on all private routes.
+- **BCrypt password hashing**.
+- **AI-driven reliability scoring** for appointment management.
+- **Geographic proximity calculations** for donor matching.
+
+## 🔍 Data Security Check
+To verify encryption manually:
+1. Register a new user with a phone number.
+2. Query the MongoDB: `db.users.find({email: "..."})`.
+3. Confirm the `phone` field is an encrypted string (format `iv:hash`).
+4. Log in as that user and verify the number is decrypted correctly on the profile page.

@@ -3,6 +3,7 @@ const Donor = require('../models/Donor');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
 const { sendEmail, sendSMS } = require('../utils/notifications');
+const { maskPhone } = require('../utils/privacy');
 const router = express.Router();
 
 // Get donors (with optional SmartMatch radius filtering)
@@ -24,8 +25,18 @@ router.get('/', auth(), async (req, res) => {
             };
         }
 
-        const donors = await Donor.find(query).populate('user', 'name email');
-        res.json(donors);
+        const donors = await Donor.find(query).populate('user', 'name email phone');
+        
+        // Mask phone numbers for all users in the list
+        const maskedDonors = donors.map(d => {
+            const donor = d.toObject();
+            if (donor.user && donor.user.phone) {
+                donor.user.phone = maskPhone(donor.user.phone);
+            }
+            return donor;
+        });
+
+        res.json(maskedDonors);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -42,9 +53,17 @@ router.get('/nearby', auth(), async (req, res) => {
                     $maxDistance: parseInt(radius)
                 }
             }
-        }).populate('user', 'name email');
+        }).populate('user', 'name email phone');
         
-        res.json(donors);
+        const maskedDonors = donors.map(d => {
+            const donor = d.toObject();
+            if (donor.user && donor.user.phone) {
+                donor.user.phone = maskPhone(donor.user.phone);
+            }
+            return donor;
+        });
+        
+        res.json(maskedDonors);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }

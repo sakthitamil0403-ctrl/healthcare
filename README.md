@@ -11,12 +11,13 @@ A high-performance, **full-stack, offline-first** healthcare ecosystem designed 
 - **Appointment Lifecycle**: Complete management from Pending ➔ Approved ➔ Completed/Cancelled.
 - **One-Click Actions**: Quick rescheduling and secure, inline cancellation.
 - **Health Journey Timeline**: A centralized dashboard tracking all upcoming and past medical activities.
-- **Personalized Identity**: Editable user profiles with native custom file upload support for personal avatars (utilizing `expo-image-picker`).
+- **Personalized Identity**: Editable user profiles with native custom file upload support for personal avatars (utilizing `expo-image-picker`). Includes AES-256 encrypted contact data.
 
 ### 📈 Clinical & Admin Insights
 - **Quick Stats**: Comprehensive metrics for clinical throughput (Total) and operational risks (High Risk Alerts).
 - **Smart Schedule**: Prioritized upcoming visits with integrated AI reliability scores for every patient.
 - **Analytical Dashboard**: Advanced system overviews with positive/negative data trends and live mock server logs.
+- **Admin Onboarding**: Dedicated workflow for administrators to securely onboard and verify medical professionals (Doctors).
 
 ### 🤖 AI-Powered Reliability (ScoreCard)
 - **Attendance Prediction**: AI-calculated percentage scores for every appointment.
@@ -27,6 +28,7 @@ A high-performance, **full-stack, offline-first** healthcare ecosystem designed 
 - **Geolocation-Based Discovery**: Real-time donor tracking within a specific radius using MongoDB 2dsphere indexing.
 - **Multi-Donation Support**: Focused modules for both **Blood** and **Breast Milk** donation.
 - **Interactive Map View**: Includes a fully functional `react-native-maps` integration that securely plots nearby available donors onto an interactive native map view.
+- **Privacy Guard**: Advanced API masking for donor phone numbers (e.g., `+91 ******1234`) to prevent public data collection while maintaining emergency accessibility.
 - **Precision Filtering**: Search by blood group, donation proximity, and availability with instant List/Map View toggles.
 
 ### 🔄 Multi-Platform & Offline-First Architecture
@@ -65,7 +67,9 @@ A high-performance, **full-stack, offline-first** healthcare ecosystem designed 
 cd backend
 npm install
 # Create .env based on .env.example
-node seed.js  # Optional: Seed demo data
+# For MONGODB_URI, use your MongoDB Atlas connection string:
+# mongodb+srv://<username>:<password>@cluster0.mongodb.net/healthhub?retryWrites=true&w=majority
+node seed.js  # Optional: Seed cloud demo data
 npm start     # Runs on http://localhost:5000
 ```
 
@@ -107,6 +111,7 @@ The AI Reliability system leverages a **Random Forest Classifier** trained on:
 ## 🔑 Authentication & Security
 - **Role-Based Access Control (RBAC)**: Secure isolation for Patients, Doctors, Donors, and Admins.
 - **JWT-Based Sessions**: Industry-standard session management.
+- **AES-256 Symmetric Encryption**: Industry-standard encryption at rest for sensitive contact information using node's `crypto` module.
 - **2dsphere Indexing**: Optimized geospatial queries for donor location services.
 
 ---

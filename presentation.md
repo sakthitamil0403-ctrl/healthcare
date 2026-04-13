@@ -29,6 +29,7 @@
 - To implement **AI-powered reliability scoring** to predict and manage patient attendance.
 - To provide a **Multilingual Voice-Encoded Assistant** (English/Tamil) for simplified appointment booking.
 - To create a **Geolocation-based Donor Network** for real-time discovery of critical medical resources.
+- To implement **Advanced Clinical Security** using AES-256 encryption and managed admin onboarding for doctors.
 - To ensure **Offline-First stability** for mobile and web users.
 
 ---
@@ -98,6 +99,7 @@ graph TD
     - Scikit-learn Random Forest model for reliability predictions.
 - **4. Data Storage Layer (Persistence)**:
     - **Primary**: MongoDB (NoSQL) with 2dsphere indexing for global donor discovery.
+    - **Security Layer**: AES-256 CBC symmetric encryption at rest for PII (Personally Identifiable Information).
     - **Local**: SQLite & AsyncStorage for offline-first mobile reliability.
 
 ---
@@ -106,8 +108,9 @@ graph TD
 - **Authentication Module**: Secure RBAC (Role-Based Access Control) for Patients, Doctors, Donors, and Admins via JWT.
 - **Appointment Lifecycle Module**: Manages the complete state machine from Pending ➔ Approved ➔ Completed/Cancelled.
 - **NLP Voice Module**: Multilingual transcription (Google Speech) and heuristic intent extraction for rapid booking.
-- **SmartMatch Donor Module**: Geospatial matching engine for Blood and Milk donation with native Mobile Location support.
+- **SmartMatch Donor Module**: Geospatial matching engine for Blood and Milk donation with native Mobile Location support and privacy-guarded (masked) contact IDs.
 - **Clinical Insights Module**: Real-time stats, AI ScoreCards, and prioritization for medical professionals on both Web and Mobile.
+- **Admin Governance Module**: Exclusive medical onboarding system to verify and manage doctor credentials across the platform.
 
 ---
 

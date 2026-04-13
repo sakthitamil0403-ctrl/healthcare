@@ -41,6 +41,8 @@ The system leverages advanced query capabilities to facilitate emergency blood d
 -   **Technology**: **MongoDB GeoJSON** indices and the `$near` operator.
 -   **Capability**: Provides real-time, localized donor searching based on the requester's coordinates, blood type compatibility, and availability status.
 -   **Integration**: Seamlessly connects with the mobile application to provide field-ready donor tracking for healthcare providers during emergencies.
+-   **Advanced Privacy Guard**: Implements dynamic phone number masking (e.g., `+91 ******1234`) for public lists to prevent data scraping while maintaining full access for emergency notifications.
+-   **Emergency Broadcast**: Integrated Twilio/Email notification engine that utilizes decrypted contact data to alert matching donors during critical shortages.
 
 ## 4. Multi-Platform Synchronization & Offline Resilience
 
@@ -58,3 +60,11 @@ A specialized UI surfaces complex AI insights through intuitive visual cues.
 -   **Severity Indicators**: Color-coded urgency alerts (e.g., Pulsing Red for Emergencies).
 -   **Recommendation Prompts**: Automatically generates next-step actions for medical staff based on triage results (e.g., "Prepare Triage Station," "Schedule Follow-up").
 -   **Analytical Overviews**: Real-time visualization of clinic workload, reliability trends, and donor availability.
+
+## 6. Enterprise-Grade Security & Governance
+
+The platform prioritizes data sovereignty and verified clinical credentials.
+
+-   **AES-256 Symmetric Encryption**: All patient and donor contact information (Phone Numbers) is encrypted at rest using a 32-byte secure key and unique Initialization Vectors (IVs).
+-   **Admin-Only Onboarding**: To maintain clinical integrity, doctors cannot register via public channels. They must be securely onboarded by an administrator through the "Intelligence Monitor" (Admin Dashboard).
+-   **Role-Based Data Redaction**: Data exposure is strictly limited by role; donors only see what they need for matching, while admins have full governance visibility.

@@ -6,6 +6,8 @@ This document provides a comprehensive list of features implemented and integrat
 - **Role-Based Access Control (RBAC)**: Distinct portals for Patients, Doctors, Donors, and Admins.
 - **JWT-Based Authentication**: Secure session management and API protection across Web and Mobile.
 - **Password Hashing**: Industry-standard encryption for user credentials.
+- **AES-256 Symmetric Encryption**: All patient and donor contact data (Phone Numbers) is encrypted at rest using node's `crypto` module.
+- **Privacy Guard (Masking)**: Public donor lists employ dynamic phone number masking (e.g., `+91 ******1234`) to prevent illicit data harvesting.
 
 ## 🩺 Patient Features
 - **Smart Appointments**: 
@@ -32,6 +34,7 @@ This document provides a comprehensive list of features implemented and integrat
     - **One-Click Location Detection**: Browser-based geolocation during sign-up.
     - **Blood Group Selection**: Donors specify their group for emergency availability.
     - **Donation Preference**: Choose between Blood, Milk, or both to personalize the platform experience.
+- **Emergency Broadcast Integration**: Supports automated SMS/Email alerts to matching donors during critical shortages using unmasked contact data.
 
 ## 📊 Tailored Dashboards
 - **Dynamic UI Adaptation**: The dashboard automatically adjusts its "Quick Access" cards based on the user's role and specific donor preferences.
@@ -52,3 +55,4 @@ This document provides a comprehensive list of features implemented and integrat
 ## 🛠 Admin & Oversight
 - **System Monitoring**: Master dashboard to oversee all donor and patient activity.
 - **Network Health**: Track system throughput and data synchronization status.
+- **Secure Medical Onboarding**: Administrators manage the exclusive creation and verification of Doctor accounts, ensuring full clinical oversight.

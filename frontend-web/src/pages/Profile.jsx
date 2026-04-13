@@ -11,6 +11,7 @@ export default function Profile() {
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({ 
         name: user?.name || '', 
+        phone: user?.phone || '',
         image: user?.image || '' 
     });
     
@@ -158,6 +159,15 @@ export default function Profile() {
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                         placeholder="Full Name"
                                     />
+                                    <input 
+                                        type="tel"
+                                        className={`w-full text-center text-xl font-bold border-b focus:outline-none bg-transparent transition-colors mt-2 ${
+                                            isDonor ? 'text-teal-400 border-teal-500/30 focus:border-teal-400 placeholder-gray-700' : 'text-gray-600 border-gray-200 focus:border-teal-500 placeholder-gray-300'
+                                        }`}
+                                        value={formData.phone}
+                                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                        placeholder="Phone Number (e.g. +91 9876543210)"
+                                    />
                                     <div className="flex gap-3 justify-center pt-2">
                                         <button 
                                             disabled={loading}
@@ -244,8 +254,11 @@ export default function Profile() {
                                         )}
                                     </div>
                                     
-                                    <div className={`flex justify-center items-center gap-4 mt-4 text-sm font-bold ${isDonor ? 'text-gray-400' : 'text-gray-500'}`}>
+                                    <div className={`flex flex-wrap justify-center items-center gap-6 mt-4 text-sm font-bold ${isDonor ? 'text-gray-400' : 'text-gray-500'}`}>
                                         <span className="flex items-center gap-1.5"><Mail size={16} /> {user?.email}</span>
+                                        {user?.phone && (
+                                            <span className="flex items-center gap-1.5"><Activity size={16} /> {user?.phone}</span>
+                                        )}
                                     </div>
                                 </div>
 

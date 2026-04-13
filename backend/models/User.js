@@ -1,14 +1,23 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const { encrypt, decrypt } = require('../utils/encryption');
 
 const userSchema = new mongoose.Schema({
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     role: { type: String, enum: ['admin', 'doctor', 'patient', 'donor'], default: 'patient' },
-    phone: { type: String, default: '' },
+    phone: { 
+        type: String, 
+        default: '',
+        set: encrypt,
+        get: decrypt
+    },
     image: { type: String, default: '' },
     createdAt: { type: Date, default: Date.now }
+}, {
+    toJSON: { getters: true },
+    toObject: { getters: true }
 });
 
 userSchema.pre('save', async function() {

@@ -18,6 +18,7 @@ export default function Register() {
         email: '',
         password: '',
         role: 'patient',
+        phone: '',
         bloodType: 'O+',
         donationType: 'blood',
         location: null
@@ -183,6 +184,15 @@ export default function Register() {
                                         className="w-full bg-white/5 border border-white/10 rounded-2xl px-12 py-3.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all font-medium text-sm"
                                         placeholder="Email Address" />
                                 </div>
+                            </div>
+
+                            {/* Phone Number */}
+                            <div className="relative group/input">
+                                <Activity className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within/input:text-teal-500 transition-colors" size={18} />
+                                <input type="tel" value={formData.phone}
+                                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-12 py-3.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all font-medium text-sm"
+                                    placeholder="Phone (e.g. +91 9876543210)" />
                             </div>
 
                             {/* Password */}

@@ -8,7 +8,7 @@ const router = express.Router();
 
 router.post('/register', async (req, res) => {
     try {
-        const { name, email, password, role, ...extraInfo } = req.body;
+        const { name, email, password, role, phone, ...extraInfo } = req.body;
         
         if (role === 'doctor') {
             return res.status(403).json({ message: 'Doctors cannot register publicly. Please contact administration for onboarding.' });
@@ -17,7 +17,7 @@ router.post('/register', async (req, res) => {
         let user = await User.findOne({ email });
         if (user) return res.status(400).json({ message: 'User already exists' });
 
-        user = new User({ name, email, password, role });
+        user = new User({ name, email, password, role, phone });
         await user.save();
 
         if (role === 'patient') {
@@ -45,6 +45,8 @@ router.post('/register', async (req, res) => {
                 id: user._id, 
                 name: user.name, 
                 role: user.role,
+                email: user.email,
+                phone: user.phone,
                 image: user.image,
                 ...extraFields
             } 
@@ -78,6 +80,8 @@ router.post('/login', async (req, res) => {
                 id: user._id, 
                 name: user.name, 
                 role: user.role,
+                email: user.email,
+                phone: user.phone,
                 image: user.image,
                 ...extraFields
             } 
@@ -97,12 +101,15 @@ router.put('/profile', auth(), async (req, res) => {
 
         if (name) user.name = name;
         if (image) user.image = image;
+        if (req.body.phone !== undefined) user.phone = req.body.phone;
 
         await user.save();
         res.json({
             id: user._id,
             name: user.name,
             role: user.role,
+            email: user.email,
+            phone: user.phone,
             image: user.image
         });
     } catch (err) {
@@ -129,6 +136,7 @@ router.get('/me', auth(), async (req, res) => {
             name: user.name,
             role: user.role,
             email: user.email,
+            phone: user.phone,
             image: user.image,
             ...extraFields
         });

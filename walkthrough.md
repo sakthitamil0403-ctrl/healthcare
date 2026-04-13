@@ -7,9 +7,30 @@ All three components are running and verified:
 | Service | URL | Status |
 |---|---|---|
 | React Frontend (Vite) | http://localhost:3000 | ✅ Running |
-| Node.js Backend (Express) | http://localhost:5000 | ✅ Running |
+| Node.js Backend (Express) | http://localhost:5000 | ✅ Running (MongoDB Atlas Connected) |
 | Python AI Service (FastAPI) | http://localhost:8000 | ✅ Running |
 | Mobile App (React Native/Expo)| http://localhost:8081 | ✅ Running |
+
+---
+
+## 🔒 Recent Update: Security & Administration Hardening
+
+I have implemented advanced data protection and clinical governance features to ensure the platform meets industry standards for healthcare privacy.
+
+### 1. AES-256 Symmetric Encryption
+Sensitive contact data, specifically **Phone Numbers**, are now encrypted at rest in the MongoDB database. 
+- **Privacy Layer**: Even in the case of a database breach, user contact details remain unreadable hashes.
+- **Transparency**: The application handles encryption and decryption automatically using a secure environment key (`ENCRYPTION_KEY`).
+
+### 2. Advanced Privacy Guard (Masking)
+To prevent unauthorized data scraping of our donor network, all public-facing donor lists now feature dynamic phone number masking.
+- **Visuals**: Primary contact numbers appear as `+91 ******1234`.
+- **Eligibility**: Full numbers are only accessible to verified users initiating a direct contact action or during an emergency broadcast.
+
+### 3. Secure Medical Onboarding
+To maintain clinical integrity, the platform has switched to an **Admin-Only** onboarding model for doctors.
+- **Verification**: Only administrators can create new doctor accounts after verifying their credentials.
+- **User Experience**: Removed the public "Doctor" registration option from the Mobile app to prevent confusion.
 
 ---
 

@@ -8,6 +8,7 @@ import { authService } from '../utils/api';
 export default function RegisterScreen({ navigation }) {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
     const [role, setRole] = useState('patient');
     const [isLoading, setIsLoading] = useState(false);
@@ -47,7 +48,7 @@ export default function RegisterScreen({ navigation }) {
         }
         setIsLoading(true);
         try {
-            const payload = { name, email, password, role };
+            const payload = { name, email, phone, password, role };
             if (role === 'donor') {
                 if (!location) {
                     Alert.alert('Location Required', 'Please secure your location to continue as a donor.');
@@ -151,6 +152,18 @@ export default function RegisterScreen({ navigation }) {
                             </View>
 
                             <View style={styles.identityInput}>
+                                <MaterialCommunityIcons name="phone-outline" size={20} color="#64748b" />
+                                <TextInput 
+                                    style={styles.input} 
+                                    placeholder="Phone Number" 
+                                    placeholderTextColor="#475569"
+                                    value={phone}
+                                    onChangeText={setPhone}
+                                    keyboardType="phone-pad"
+                                />
+                            </View>
+
+                            <View style={styles.identityInput}>
                                 <MaterialCommunityIcons name="lock-outline" size={20} color="#64748b" />
                                 <TextInput 
                                     style={styles.input} 
@@ -166,7 +179,6 @@ export default function RegisterScreen({ navigation }) {
                         <Text style={styles.groupLabel}>SYSTEM ROLE</Text>
                         <View style={styles.roleContainer}>
                             <RoleCard type="patient" icon="heart-pulse" label="Patient" selected={role === 'patient'} />
-                            <RoleCard type="doctor" icon="doctor" label="Doctor" selected={role === 'doctor'} />
                             <RoleCard type="donor" icon="water-outline" label="Donor" selected={role === 'donor'} />
                         </View>
 

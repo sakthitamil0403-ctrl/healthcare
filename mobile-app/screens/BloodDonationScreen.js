@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, TextInput, Platform, Image, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, TextInput, Platform, Image, ScrollView, Linking, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { donorService } from '../utils/api';
 import * as Location from 'expo-location';
@@ -61,6 +61,37 @@ export default function BloodDonationScreen({ navigation, route }) {
         return parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : name.substring(0, 2).toUpperCase();
     };
 
+    const handleContactDonor = (donor) => {
+        const phone = donor.user?.phone;
+        const email = donor.user?.email;
+        const name = donor.user?.name || 'Donor';
+
+        if (!phone && !email) {
+            Alert.alert('No Contact Info', 'This donor has not provided contact information.');
+            return;
+        }
+
+        Alert.alert(
+            `Contact ${name}`,
+            'Choose a contact method:',
+            [
+                {
+                    text: 'Call Phone',
+                    onPress: () => phone ? Linking.openURL(`tel:${phone}`) : Alert.alert('Error', 'No phone number available.'),
+                },
+                {
+                    text: 'Send Email',
+                    onPress: () => email ? Linking.openURL(`mailto:${email}`) : Alert.alert('Error', 'No email address available.'),
+                },
+                {
+                    text: 'Cancel',
+                    style: 'cancel',
+                },
+            ],
+            { cancelable: true }
+        );
+    };
+
     const formatDonationDate = (dateString) => {
         if (!dateString) return 'Never donated';
         const date = new Date(dateString);
@@ -103,7 +134,10 @@ export default function BloodDonationScreen({ navigation, route }) {
                             <Text style={styles.bloodText}>{bgType}</Text>
                         </View>
                     </View>
-                    <TouchableOpacity style={styles.contactBtn}>
+                    <TouchableOpacity 
+                        style={styles.contactBtn}
+                        onPress={() => handleContactDonor(item)}
+                    >
                         <Text style={styles.contactBtnText}>Contact</Text>
                     </TouchableOpacity>
                 </View>
