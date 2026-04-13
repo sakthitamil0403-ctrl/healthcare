@@ -30,7 +30,12 @@ export default function LoginScreen({ navigation }) {
             const { token, user } = response.data;
             await AsyncStorage.setItem('token', token);
             await AsyncStorage.setItem('user', JSON.stringify(user));
-            navigation.navigate('Dashboard', { user });
+            
+            if (user.role === 'admin') {
+                navigation.navigate('AdminDashboard', { user });
+            } else {
+                navigation.navigate('Dashboard', { user });
+            }
         } catch (error) {
             Alert.alert('Login Failed', error.response?.data?.message || 'Invalid credentials');
         } finally {

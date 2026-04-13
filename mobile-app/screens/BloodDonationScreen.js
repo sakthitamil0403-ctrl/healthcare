@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, TextInput, Platform, Image, ScrollView, Linking, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, TextInput, Platform, ScrollView, Linking, Alert, Modal } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { donorService } from '../utils/api';
 import * as Location from 'expo-location';
@@ -13,6 +13,16 @@ export default function BloodDonationScreen({ navigation, route }) {
     const [viewMode, setViewMode] = useState('list'); // 'list' or 'map'
     const [radius, setRadius] = useState(50); // Default 50km
     const [coords, setCoords] = useState(null);
+
+    // Emergency Alert State
+    const [showEmergency, setShowEmergency] = useState(false);
+    const [alertBloodType, setAlertBloodType] = useState('O+');
+    const [alertRadius, setAlertRadius] = useState(5000);
+    const [alertMessage, setAlertMessage] = useState('');
+    const [alertSending, setAlertSending] = useState(false);
+
+    // Contact Modal State
+    const [contactDonor, setContactDonor] = useState(null);
 
     useEffect(() => {
         fetchDonors();
@@ -61,35 +71,46 @@ export default function BloodDonationScreen({ navigation, route }) {
         return parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : name.substring(0, 2).toUpperCase();
     };
 
-    const handleContactDonor = (donor) => {
-        const phone = donor.user?.phone;
-        const email = donor.user?.email;
-        const name = donor.user?.name || 'Donor';
+    const handleSendEmergencyAlert = async () => {
+        if (!coords) {
+            Alert.alert('Location Required', 'Please allow location access so we can find nearby donors.');
+            return;
+        }
+        setAlertSending(true);
+        try {
+            const { data } = await donorService.sendEmergencyAlert({
+                bloodType: alertBloodType,
+                latitude: coords.lat,
+                longitude: coords.lng,
+                radius: alertRadius,
+                message: alertMessage || `Urgent: ${alertBloodType} blood needed immediately. Please report to nearest hospital.`
+            });
+            setShowEmergency(false);
+            setAlertMessage('');
+            Alert.alert(
+                '🚨 Alert Broadcasted!',
+                `Emergency alert sent to ${data.count} donor(s) nearby via Email & SMS.`,
+                [{ text: 'OK' }]
+            );
+        } catch (err) {
+            const msg = err.response?.data?.message || 'Failed to send alert. Try again.';
+            Alert.alert('Alert Failed', msg);
+        } finally {
+            setAlertSending(false);
+        }
+    };
 
-        if (!phone && !email) {
+    // A phone is 'masked' if it contains '*'
+    const isPhoneMasked = (phone) => !phone || phone.includes('*');
+
+    const handleContactDonor = (donor) => {
+        const email = donor.user?.email;
+        const phone = donor.user?.phone;
+        if (!email && isPhoneMasked(phone)) {
             Alert.alert('No Contact Info', 'This donor has not provided contact information.');
             return;
         }
-
-        Alert.alert(
-            `Contact ${name}`,
-            'Choose a contact method:',
-            [
-                {
-                    text: 'Call Phone',
-                    onPress: () => phone ? Linking.openURL(`tel:${phone}`) : Alert.alert('Error', 'No phone number available.'),
-                },
-                {
-                    text: 'Send Email',
-                    onPress: () => email ? Linking.openURL(`mailto:${email}`) : Alert.alert('Error', 'No email address available.'),
-                },
-                {
-                    text: 'Cancel',
-                    style: 'cancel',
-                },
-            ],
-            { cancelable: true }
-        );
+        setContactDonor(donor);
     };
 
     const formatDonationDate = (dateString) => {
@@ -147,9 +168,162 @@ export default function BloodDonationScreen({ navigation, route }) {
 
     return (
         <View style={styles.container}>
+
+            {/* Emergency Alert Modal */}
+            <Modal visible={showEmergency} animationType="slide" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalCard}>
+                        <View style={styles.modalHeader}>
+                            <View style={styles.alertIconBox}>
+                                <Text style={styles.alertIconText}>🚨</Text>
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.modalTitle}>Emergency Alert</Text>
+                                <Text style={styles.modalSubtitle}>Broadcast to all nearby matching donors</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => setShowEmergency(false)}>
+                                <Text style={styles.closeBtn}>✕</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text style={styles.modalLabel}>BLOOD TYPE NEEDED</Text>
+                        <View style={styles.alertBloodGrid}>
+                            {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(bt => (
+                                <TouchableOpacity
+                                    key={bt}
+                                    style={[styles.alertBloodChip, alertBloodType === bt && styles.alertBloodChipActive]}
+                                    onPress={() => setAlertBloodType(bt)}
+                                >
+                                    <Text style={[styles.alertBloodText, alertBloodType === bt && styles.alertBloodTextActive]}>{bt}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+
+                        <Text style={styles.modalLabel}>SEARCH RADIUS</Text>
+                        <View style={styles.alertRadiusRow}>
+                            {[1000, 5000, 10000, 20000].map(r => (
+                                <TouchableOpacity
+                                    key={r}
+                                    style={[styles.alertRadiusBtn, alertRadius === r && styles.alertRadiusBtnActive]}
+                                    onPress={() => setAlertRadius(r)}
+                                >
+                                    <Text style={[styles.alertRadiusText, alertRadius === r && styles.alertRadiusTextActive]}>{r/1000}km</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+
+                        <Text style={styles.modalLabel}>CUSTOM MESSAGE (optional)</Text>
+                        <TextInput
+                            style={styles.alertMsgInput}
+                            placeholder={`Urgent: ${alertBloodType} blood needed immediately...`}
+                            placeholderTextColor="#94a3b8"
+                            value={alertMessage}
+                            onChangeText={setAlertMessage}
+                            multiline
+                            numberOfLines={3}
+                        />
+
+                        <TouchableOpacity
+                            style={[styles.broadcastBtn, alertSending && { opacity: 0.6 }]}
+                            onPress={handleSendEmergencyAlert}
+                            disabled={alertSending}
+                        >
+                            {alertSending
+                                ? <ActivityIndicator color="#fff" />
+                                : <Text style={styles.broadcastBtnText}>🚨 BROADCAST EMERGENCY ALERT</Text>
+                            }
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Contact Donor Modal */}
+            <Modal visible={!!contactDonor} animationType="slide" transparent onRequestClose={() => setContactDonor(null)}>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalCard}>
+                        {/* Header */}
+                        <View style={styles.modalHeader}>
+                            <View style={styles.contactAvatarLg}>
+                                <Text style={styles.contactAvatarTextLg}>{getInitials(contactDonor?.user?.name)}</Text>
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.modalTitle}>{contactDonor?.user?.name || 'Donor'}</Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                                    <View style={styles.contactBloodBadge}>
+                                        <Text style={styles.contactBloodText}>{contactDonor?.bloodType || contactDonor?.bloodGroup || '?'}</Text>
+                                    </View>
+                                    <Text style={styles.contactAvailText}>● Available</Text>
+                                </View>
+                            </View>
+                            <TouchableOpacity onPress={() => setContactDonor(null)}>
+                                <Text style={styles.closeBtn}>✕</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text style={styles.modalLabel}>CONTACT OPTIONS</Text>
+
+                        {/* Email Button */}
+                        {contactDonor?.user?.email ? (
+                            <TouchableOpacity
+                                style={styles.contactOptionBtn}
+                                onPress={() => {
+                                    Linking.openURL(`mailto:${contactDonor.user.email}`);
+                                    setContactDonor(null);
+                                }}
+                            >
+                                <View style={styles.contactOptionIcon}>
+                                    <MaterialCommunityIcons name="email-outline" size={22} color="#3b82f6" />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.contactOptionTitle}>Send Email</Text>
+                                    <Text style={styles.contactOptionValue}>{contactDonor.user.email}</Text>
+                                </View>
+                                <MaterialCommunityIcons name="chevron-right" size={20} color="#cbd5e1" />
+                            </TouchableOpacity>
+                        ) : null}
+
+                        {/* Phone Button — only if not masked */}
+                        {!isPhoneMasked(contactDonor?.user?.phone) ? (
+                            <TouchableOpacity
+                                style={styles.contactOptionBtn}
+                                onPress={() => {
+                                    Linking.openURL(`tel:${contactDonor.user.phone}`);
+                                    setContactDonor(null);
+                                }}
+                            >
+                                <View style={[styles.contactOptionIcon, { backgroundColor: '#f0fdf4' }]}>
+                                    <MaterialCommunityIcons name="phone-outline" size={22} color="#10b981" />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.contactOptionTitle}>Call Phone</Text>
+                                    <Text style={styles.contactOptionValue}>{contactDonor?.user?.phone}</Text>
+                                </View>
+                                <MaterialCommunityIcons name="chevron-right" size={20} color="#cbd5e1" />
+                            </TouchableOpacity>
+                        ) : (
+                            <View style={styles.maskedPhoneNote}>
+                                <MaterialCommunityIcons name="shield-lock-outline" size={16} color="#94a3b8" />
+                                <Text style={styles.maskedPhoneText}>Phone number is private. Use email or emergency alert to reach this donor.</Text>
+                            </View>
+                        )}
+
+                        <TouchableOpacity style={styles.cancelContactBtn} onPress={() => setContactDonor(null)}>
+                            <Text style={styles.cancelContactText}>Close</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
             <View style={styles.header}>
-                <Text style={styles.title}>Blood Donation Network</Text>
-                <Text style={styles.subtitle}>Find available donors instantly</Text>
+                <View style={styles.titleRow}>
+                    <View>
+                        <Text style={styles.title}>Blood Donation Network</Text>
+                        <Text style={styles.subtitle}>Find available donors instantly</Text>
+                    </View>
+                    <TouchableOpacity style={styles.emergencyFab} onPress={() => setShowEmergency(true)}>
+                        <Text style={styles.emergencyFabText}>🚨 SOS</Text>
+                    </TouchableOpacity>
+                </View>
                 
                 {/* View Toggle */}
                 <View style={styles.toggleContainer}>
@@ -231,9 +405,38 @@ export default function BloodDonationScreen({ navigation, route }) {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#f8fafc' },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
+    // Emergency Modal
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+    modalCard: { backgroundColor: '#fff', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 28, paddingBottom: 40 },
+    modalHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 24, gap: 14 },
+    alertIconBox: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#fee2e2', justifyContent: 'center', alignItems: 'center' },
+    alertIconText: { fontSize: 22 },
+    modalTitle: { fontSize: 20, fontWeight: '900', color: '#1e293b' },
+    modalSubtitle: { fontSize: 12, color: '#64748b', marginTop: 2 },
+    closeBtn: { fontSize: 18, color: '#94a3b8', fontWeight: 'bold', padding: 4 },
+    modalLabel: { fontSize: 10, fontWeight: '900', color: '#94a3b8', letterSpacing: 1.5, marginBottom: 10, marginTop: 6 },
+    alertBloodGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 18 },
+    alertBloodChip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, backgroundColor: '#fee2e2', borderWidth: 1, borderColor: '#fecaca', minWidth: 58, alignItems: 'center' },
+    alertBloodChipActive: { backgroundColor: '#ef4444', borderColor: '#ef4444' },
+    alertBloodText: { color: '#ef4444', fontWeight: '800', fontSize: 14 },
+    alertBloodTextActive: { color: '#fff' },
+    alertRadiusRow: { flexDirection: 'row', gap: 10, marginBottom: 18 },
+    alertRadiusBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, backgroundColor: '#f1f5f9', alignItems: 'center', borderWidth: 1, borderColor: '#e2e8f0' },
+    alertRadiusBtnActive: { backgroundColor: '#ef4444', borderColor: '#ef4444' },
+    alertRadiusText: { fontSize: 13, fontWeight: 'bold', color: '#475569' },
+    alertRadiusTextActive: { color: '#fff' },
+    alertMsgInput: { backgroundColor: '#f8fafc', borderRadius: 14, borderWidth: 1, borderColor: '#e2e8f0', padding: 14, fontSize: 14, color: '#1e293b', marginBottom: 22, minHeight: 80, textAlignVertical: 'top' },
+    broadcastBtn: { backgroundColor: '#ef4444', borderRadius: 16, paddingVertical: 18, alignItems: 'center', justifyContent: 'center' },
+    broadcastBtnText: { color: '#fff', fontSize: 14, fontWeight: '900', letterSpacing: 0.5 },
+
+    // SOS FAB
+    titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
+    emergencyFab: { backgroundColor: '#ef4444', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12 },
+    emergencyFabText: { color: '#fff', fontWeight: '900', fontSize: 13 },
     header: { padding: 20, paddingTop: 30, paddingBottom: 15 },
-    title: { fontSize: 24, fontWeight: 'bold', color: '#1e293b' },
-    subtitle: { fontSize: 13, color: '#64748b', marginTop: 3, marginBottom: 15 },
+    title: { fontSize: 22, fontWeight: 'bold', color: '#1e293b' },
+    subtitle: { fontSize: 13, color: '#64748b', marginTop: 3 },
     toggleContainer: { flexDirection: 'row', backgroundColor: '#e2e8f0', borderRadius: 10, padding: 4 },
     toggleBtn: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8 },
     toggleActive: { 
@@ -294,5 +497,20 @@ const styles = StyleSheet.create({
     fallbackTitle: { fontSize: 20, fontWeight: 'bold', color: '#1e293b', marginBottom: 10 },
     fallbackDesc: { fontSize: 14, color: '#64748b', textAlign: 'center', marginBottom: 30, lineHeight: 22 },
     fallbackBtn: { backgroundColor: '#3b82f6', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 10 },
-    fallbackBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 }
+    fallbackBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
+
+    // Contact Modal
+    contactAvatarLg: { width: 52, height: 52, borderRadius: 18, backgroundColor: '#fdf2f8', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#fce7f3' },
+    contactAvatarTextLg: { fontSize: 20, fontWeight: 'bold', color: '#db2777' },
+    contactBloodBadge: { backgroundColor: '#fee2e2', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 8 },
+    contactBloodText: { color: '#ef4444', fontWeight: '900', fontSize: 13 },
+    contactAvailText: { fontSize: 12, color: '#10b981', fontWeight: 'bold' },
+    contactOptionBtn: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: '#f8fafc', borderRadius: 16, padding: 16, marginBottom: 10, borderWidth: 1, borderColor: '#e2e8f0' },
+    contactOptionIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#eff6ff', justifyContent: 'center', alignItems: 'center' },
+    contactOptionTitle: { fontSize: 15, fontWeight: '700', color: '#1e293b' },
+    contactOptionValue: { fontSize: 12, color: '#64748b', marginTop: 2 },
+    maskedPhoneNote: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#f8fafc', borderRadius: 12, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: '#e2e8f0' },
+    maskedPhoneText: { flex: 1, fontSize: 12, color: '#94a3b8', lineHeight: 18 },
+    cancelContactBtn: { marginTop: 8, alignItems: 'center', paddingVertical: 14, borderRadius: 14, borderWidth: 1, borderColor: '#e2e8f0' },
+    cancelContactText: { color: '#64748b', fontWeight: '700', fontSize: 15 }
 });

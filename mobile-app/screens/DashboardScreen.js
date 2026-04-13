@@ -21,18 +21,26 @@ const RoleHero = ({ role, name }) => {
 
     return (
         <LinearGradient colors={cfg.colors} style={styles.hero}>
-            <View style={styles.heroTop}>
-                <View style={styles.heroLabelBox}>
-                    <MaterialCommunityIcons name={cfg.icon} size={14} color="rgba(255,255,255,0.8)" />
-                    <Text style={styles.heroLabel}>{cfg.label}</Text>
+            <View style={styles.heroGlass}>
+                <MaterialCommunityIcons 
+                    name={cfg.icon} 
+                    size={160} 
+                    color="rgba(255,255,255,0.06)" 
+                    style={styles.heroBgIcon} 
+                />
+                <View style={styles.heroTop}>
+                    <View style={styles.heroLabelBox}>
+                        <MaterialCommunityIcons name={cfg.icon} size={14} color="rgba(255,255,255,0.8)" />
+                        <Text style={styles.heroLabel}>{cfg.label}</Text>
+                    </View>
+                    <View style={styles.neuralIndicator}>
+                        <View style={styles.pulseDot} />
+                        <Text style={styles.neuralText}>NEURAL CORE ACTIVE</Text>
+                    </View>
                 </View>
-                <View style={styles.neuralIndicator}>
-                    <View style={styles.pulseDot} />
-                    <Text style={styles.neuralText}>NEURAL CORE ACTIVE</Text>
-                </View>
+                <Text style={styles.welcomeText}>Welcome back,</Text>
+                <Text style={styles.nameText}>{name}</Text>
             </View>
-            <Text style={styles.welcomeText}>Welcome back,</Text>
-            <Text style={styles.nameText}>{name}</Text>
         </LinearGradient>
     );
 };
@@ -92,7 +100,8 @@ export default function DashboardScreen({ route, navigation }) {
         const actions = [];
         if (user.role === 'doctor') {
             actions.push({ title: 'My Schedule', sub: 'Manage clinical queue', icon: 'calendar-account', color: '#4f46e5', nav: 'Appointments' });
-            actions.push({ title: 'System Analytics', sub: 'View platform trends', icon: 'chart-bar', color: '#10b981', nav: 'AdminDashboard' });
+            actions.push({ title: 'Clinical Network', sub: 'Find nearby life-savers', icon: 'water-outline', color: '#e11d48', nav: 'BloodDonation' });
+            actions.push({ title: 'Risk Monitor', sub: 'Triage high-risk cases', icon: 'alert-decagram-outline', color: '#f59e0b', nav: 'Appointments' });
         } else if (user.role === 'patient') {
             actions.push({ title: 'Book AI Consult', sub: 'Schedule neural session', icon: 'robot-outline', color: '#0d9488', nav: 'BookAppointment' });
             actions.push({ title: 'Upcoming Appts', sub: 'Track your health journey', icon: 'calendar-check', color: '#4f46e5', nav: 'Appointments' });
@@ -236,7 +245,9 @@ export default function DashboardScreen({ route, navigation }) {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fff' },
-    hero: { padding: 30, paddingTop: 60, paddingBottom: 50, borderBottomLeftRadius: 50, borderBottomRightRadius: 50 },
+    hero: { padding: 30, paddingTop: 60, paddingBottom: 50, borderBottomLeftRadius: 50, borderBottomRightRadius: 50, overflow: 'hidden' },
+    heroGlass: { width: '100%' },
+    heroBgIcon: { position: 'absolute', right: -40, bottom: -40 },
     heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 },
     heroLabelBox: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
     heroLabel: { color: '#fff', fontSize: 10, fontWeight: '900', letterSpacing: 1.5 },

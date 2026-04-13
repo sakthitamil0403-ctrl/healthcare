@@ -47,7 +47,8 @@ export const patientService = {
 
 export const donorService = {
     getDonors: (params) => api.get('/donors', { params }),
-    updateLocation: (coords) => api.post('/donors/location', coords)
+    updateLocation: (coords) => api.post('/donors/location', coords),
+    sendEmergencyAlert: (data) => api.post('/donors/emergency-alert', data)
 };
 
 export const adminService = {

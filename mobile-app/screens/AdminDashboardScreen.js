@@ -261,9 +261,21 @@ export default function AdminDashboardScreen({ navigation }) {
             <ScrollView stickyHeaderIndices={[1]} showsVerticalScrollIndicator={false}>
                 {/* Command Header */}
                 <View style={styles.header}>
-                    <View style={styles.opHeader}>
-                        <View style={styles.pulseDot} />
-                        <Text style={styles.opText}>Operational Monitoring Enabled</Text>
+                    <View style={styles.headerTopRow}>
+                        <View style={styles.opHeader}>
+                            <View style={styles.pulseDot} />
+                            <Text style={styles.opText}>Operational Monitoring Enabled</Text>
+                        </View>
+                        <TouchableOpacity 
+                            style={styles.adminLogoutBtn}
+                            onPress={async () => {
+                                await require('@react-native-async-storage/async-storage').default.removeItem('token');
+                                navigation.replace('Login');
+                            }}
+                        >
+                            <MaterialCommunityIcons name="logout" size={14} color="#f43f5e" />
+                            <Text style={styles.adminLogoutText}>TERMINATE</Text>
+                        </TouchableOpacity>
                     </View>
                     <Text style={styles.title}>Intelligence Monitor</Text>
                     <Text style={styles.subtitle}>Central hub for clinical triage and platform governance.</Text>
@@ -302,7 +314,10 @@ const styles = StyleSheet.create({
     loadText: { marginTop: 20, fontSize: 10, fontWeight: '900', color: '#94a3b8', letterSpacing: 4, textTransform: 'uppercase' },
     
     header: { padding: 30, paddingTop: 60, paddingBottom: 40 },
-    opHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 15 },
+    headerTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
+    adminLogoutBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#fff1f2', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: '#ffe4e6' },
+    adminLogoutText: { fontSize: 10, fontWeight: '900', color: '#f43f5e', letterSpacing: 1 },
+    opHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     pulseDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#10b981' },
     opText: { fontSize: 10, fontWeight: '900', color: '#94a3b8', letterSpacing: 2, textTransform: 'uppercase' },
     title: { fontSize: 44, fontWeight: '900', color: '#0f172a', letterSpacing: -2 },

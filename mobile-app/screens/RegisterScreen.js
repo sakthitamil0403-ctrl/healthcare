@@ -214,6 +214,30 @@ export default function RegisterScreen({ navigation }) {
                                     </View>
                                 )}
 
+                                {donationType === 'blood' && (
+                                    <View>
+                                        <Text style={styles.groupLabel}>BLOOD TYPE</Text>
+                                        <View style={styles.bloodTypeGrid}>
+                                            {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bt => (
+                                                <TouchableOpacity
+                                                    key={bt}
+                                                    style={[styles.bloodTypeChip, bloodType === bt && styles.bloodTypeChipActive]}
+                                                    onPress={() => setBloodType(bt)}
+                                                >
+                                                    <MaterialCommunityIcons
+                                                        name="water"
+                                                        size={14}
+                                                        color={bloodType === bt ? '#fff' : '#ef4444'}
+                                                    />
+                                                    <Text style={[styles.bloodTypeText, bloodType === bt && styles.bloodTypeTextActive]}>
+                                                        {bt}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    </View>
+                                )}
+
                                 <View style={styles.typeToggle}>
                                     <TouchableOpacity 
                                         style={[styles.typeBtn, donationType === 'blood' && styles.typeBtnActive]}
@@ -309,6 +333,12 @@ const styles = StyleSheet.create({
     locSecuredText: { color: '#10b981', fontSize: 14, fontWeight: '700' },
     resetText: { color: '#64748b', fontSize: 12, fontWeight: 'bold' },
     
+    bloodTypeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 18 },
+    bloodTypeChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 14, backgroundColor: 'rgba(239,68,68,0.07)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.2)', minWidth: 68 },
+    bloodTypeChipActive: { backgroundColor: '#ef4444', borderColor: '#ef4444' },
+    bloodTypeText: { color: '#ef4444', fontSize: 14, fontWeight: '800' },
+    bloodTypeTextActive: { color: '#fff' },
+
     typeToggle: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.02)', padding: 6, borderRadius: 16, gap: 8 },
     typeBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 45, borderRadius: 12, gap: 8 },
     typeBtnActive: { backgroundColor: '#ef4444' },
