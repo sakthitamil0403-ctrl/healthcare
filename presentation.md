@@ -22,15 +22,17 @@
 - **Inefficiency in Scheduling**: High "no-show" rates in clinics lead to lost revenue and idle resources.
 - **Accessibility Barriers**: Traditional digital booking is often cumbersome for non-technical users or those speaking regional languages.
 - **Fragmented Donor Networks**: Vital seconds are lost when searching for nearby blood/milk donors during emergencies.
+- **Privacy Sensitivity**: Sharing personal contact info for milk/blood donation often leads to data privacy concerns for donors.
 
 ---
 
 ## 🎯 Slide 4: Objectives
 - To implement **AI-powered reliability scoring** to predict and manage patient attendance.
 - To provide a **Multilingual Voice-Encoded Assistant** (English/Tamil) for simplified appointment booking.
-- To create a **Geolocation-based Donor Network** for real-time discovery of critical medical resources.
+- To create a **Geolocation-based Donor Network** with a **Secure Handshake Protocol** for privacy-guarded resource discovery.
 - To implement **Advanced Clinical Security** using AES-256 encryption and managed admin onboarding for doctors.
 - To ensure **Offline-First stability** for mobile and web users.
+- To handle **Clinical No-Shows** with automated AI-penalized scheduling memory.
 
 ---
 
@@ -142,7 +144,9 @@ sequenceDiagram
 
 ## 📊 Slide 11: Results / Output
 - **Predictions**: Successful generation of "Reliability Percentages" for every appointment.
+- **Clinical Accountability**: Real-time "Mark as Missed" workflow that automatically updates the patient's neural reliability profile.
 - **Multilingual Support**: Successful transcription and translation of Tamil voice commands to clinical data.
+- **Privacy Handshake**: Proven secure communication channel for milk/blood donors without exposing private PII in the match engine.
 - **Responsive UI**: Unified experience across desktop and mobile browsers.
 
 ---

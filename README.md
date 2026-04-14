@@ -7,9 +7,9 @@ A high-performance, **full-stack, offline-first** healthcare ecosystem designed 
 ## 🚀 Core Features
 
 ### 🩺 Smart Patient Portal
-- **Intelligent Booking**: Select doctors by specialization, experience, and real-time ratings.
-- **Appointment Lifecycle**: Complete management from Pending ➔ Approved ➔ Completed/Cancelled.
-- **One-Click Actions**: Quick rescheduling and secure, inline cancellation.
+- **AI Reliability Score**: Predicts patient attendance probability for every visit based on history and demographics.
+- **Voice-Powered Booking**: Schedule appointments using natural language voice commands in multiple languages (English/Tamil).
+- **One-Click Actions**: Quick rescheduling, secure cancellation, and streamlined rebooking for missed visits.
 - **Health Journey Timeline**: A centralized dashboard tracking all upcoming and past medical activities.
 - **Personalized Identity**: Editable user profiles with native custom file upload support for personal avatars (utilizing `expo-image-picker`). Includes AES-256 encrypted contact data.
 
@@ -21,14 +21,15 @@ A high-performance, **full-stack, offline-first** healthcare ecosystem designed 
 
 ### 🤖 AI-Powered Reliability (ScoreCard)
 - **Attendance Prediction**: AI-calculated percentage scores for every appointment.
+- **No-Show Tracking**: Clinical memory that tracks missed appointments and penalizes future reliability scores.
 - **Risk Classification**: Instant visual badges for **Low Risk** and **High Risk** assessments (using Random Forest algorithms).
 - **Proactive Management**: Enables clinics to optimize schedules based on predicted no-show rates.
 
 ### 🩸 Donor Network (SmartMatch)
 - **Geolocation-Based Discovery**: Real-time donor tracking within a specific radius using MongoDB 2dsphere indexing.
 - **Multi-Donation Support**: Focused modules for both **Blood** and **Breast Milk** donation.
+- **Secure Inquiry Handshake**: Privacy-first inquiry protocol that allows patients to contact donors/banks without exposing PII.
 - **Interactive Map View**: Includes a fully functional `react-native-maps` integration that securely plots nearby available donors onto an interactive native map view.
-- **Privacy Guard**: Advanced API masking for donor phone numbers (e.g., `+91 ******1234`) to prevent public data collection while maintaining emergency accessibility.
 - **Precision Filtering**: Search by blood group, donation proximity, and availability with instant List/Map View toggles.
 
 ### 🔄 Multi-Platform & Offline-First Architecture

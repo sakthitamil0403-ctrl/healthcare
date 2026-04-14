@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Baby, Droplets, Heart, ShieldCheck, MapPin, Navigation, Loader2, Filter, AlertCircle } from 'lucide-react';
+import { Baby, Droplets, Heart, ShieldCheck, MapPin, Navigation, Loader2, Filter, AlertCircle, MessageSquare } from 'lucide-react';
 import { milkService } from '../services/api';
+import toast from 'react-hot-toast';
 
-const MilkDonationItem = ({ donor, volume, priorityScore, status }) => {
+const MilkDonationItem = ({ donor, donorId, volume, priorityScore, status, onInquire }) => {
     const priority = priorityScore > 1000 ? 'high' : 'normal';
     return (
         <div className="p-5 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-between hover:shadow-md transition-all group">
@@ -21,9 +22,18 @@ const MilkDonationItem = ({ donor, volume, priorityScore, status }) => {
                 }`}>
                     {priority} priority
                 </div>
-                <button className="p-2.5 text-gray-300 hover:text-pink-600 hover:bg-pink-50 rounded-xl transition-all">
-                    <Navigation size={20} />
-                </button>
+                <div className="flex gap-2">
+                    <button className="p-2.5 text-gray-300 hover:text-pink-600 hover:bg-pink-50 rounded-xl transition-all" title="Navigate to Center">
+                        <Navigation size={18} />
+                    </button>
+                    <button 
+                        onClick={() => onInquire(donorId)}
+                        className="p-2.5 text-gray-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" 
+                        title="Secure Inquiry"
+                    >
+                        <MessageSquare size={18} />
+                    </button>
+                </div>
             </div>
         </div>
     );
@@ -59,6 +69,18 @@ export default function MilkDonation() {
             setIsSearching(false);
         });
     };
+    
+    const handleInquire = async (donorId) => {
+        try {
+            await milkService.inquire({ donorId, message: "Hello, I am interested in milk donation/pickup for neonatal care." });
+            toast.success('Inquiry handshake successful! The donor has been notified.', {
+                icon: '🤍',
+                style: { borderRadius: '15px', background: '#333', color: '#fff' }
+            });
+        } catch (err) {
+            toast.error('Failed to initiate inquiry.');
+        }
+    };
 
     return (
         <div className="max-w-5xl space-y-8">
@@ -93,6 +115,12 @@ export default function MilkDonation() {
                     >
                         {isSearching ? <Loader2 className="animate-spin" size={18} /> : <MapPin size={18} />}
                         Find Donors
+                    </button>
+                    <button 
+                        onClick={() => toast('HealthHub support: help@healthhubai.com', { icon: '📧' })}
+                        className="p-3 bg-gray-50 text-gray-400 hover:text-indigo-600 rounded-2xl border border-gray-100 transition-all ml-2" title="Platform Help"
+                    >
+                        <ShieldCheck size={20} />
                     </button>
                 </div>
             </header>
@@ -156,8 +184,10 @@ export default function MilkDonation() {
                             <MilkDonationItem 
                                 key={i} 
                                 donor={d.name} 
+                                donorId={d.donorId}
                                 priorityScore={d.priorityScore} 
                                 status="Available" 
+                                onInquire={handleInquire}
                             />
                         ))
                     ) : (
@@ -166,7 +196,20 @@ export default function MilkDonation() {
                                 <MapPin size={40} />
                             </div>
                             <h4 className="text-xl font-bold text-gray-400">No active searches</h4>
-                            <p className="text-sm text-gray-300 mt-2 max-w-xs">Use the "Find Donors" button above to scan the geospatial network forhuman milk donors.</p>
+                            <p className="text-sm text-gray-300 mt-2 max-w-xs px-10">Use the "Find Donors" button above to scan the geospatial network.</p>
+                            <div className="mt-6 flex flex-col items-center gap-2 bg-gray-50 p-4 rounded-3xl border border-dashed border-gray-100">
+                                <p className="text-[10px] uppercase font-black tracking-widest text-gray-400 mb-1">How to Contact Donors?</p>
+                                <div className="flex gap-4">
+                                    <div className="flex flex-col items-center gap-1">
+                                        <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-pink-500 shadow-sm"><MapPin size={14} /></div>
+                                        <span className="text-[8px] font-bold text-gray-400">1. Click Search</span>
+                                    </div>
+                                    <div className="flex flex-col items-center gap-1">
+                                        <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-indigo-500 shadow-sm"><MessageSquare size={14} /></div>
+                                        <span className="text-[8px] font-bold text-gray-400">2. Secure Inquiry</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>

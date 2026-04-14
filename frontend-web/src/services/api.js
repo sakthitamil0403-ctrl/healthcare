@@ -14,6 +14,7 @@ api.interceptors.request.use((config) => {
 
 export const authService = {
     login: (credentials) => api.post('/auth/login', credentials),
+    loginWithGoogle: (token, additionalData = {}) => api.post('/auth/google', { token, ...additionalData }),
     register: (userData) => api.post('/auth/register', userData),
     updateProfile: (data) => api.put('/auth/profile', data),
     fetchMe: () => api.get('/auth/me')
@@ -39,7 +40,8 @@ export const donorService = {
 
 export const milkService = {
     getNearbyDonors: (params) => api.get('/milk/nearby', { params }),
-    requestMilk: (data) => api.post('/milk/request-milk', data)
+    requestMilk: (data) => api.post('/milk/request-milk', data),
+    inquire: (data) => api.post('/milk/inquire', data)
 };
 
 export const doctorService = {

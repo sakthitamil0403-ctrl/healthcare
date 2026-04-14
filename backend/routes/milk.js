@@ -48,4 +48,24 @@ router.post('/request-milk', auth(['patient']), async (req, res) => {
     res.json({ message: 'Request submitted', priority: priorityList[0] });
 });
 
+router.post('/inquire', auth(['patient', 'admin']), async (req, res) => {
+    try {
+        const { donorId, message } = req.body;
+        const donor = await Donor.findById(donorId).populate('user');
+        
+        if (!donor) return res.status(404).json({ message: 'Donor/Bank not found' });
+
+        // Send Secure Handshake Email
+        await sendEmail(
+            donor.user.email,
+            'New Milk Bank Inquiry 🍼',
+            `Hello ${donor.user.name}, you have a new inquiry from ${req.user.name}. Message: ${message || 'I am interested in donation/pickup.'}`
+        );
+
+        res.json({ message: 'Inquiry handshake successful. The donor/bank has been notified.' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 module.exports = router;

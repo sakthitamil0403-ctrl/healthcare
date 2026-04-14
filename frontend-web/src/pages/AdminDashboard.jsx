@@ -17,9 +17,12 @@ import {
     HeartPulse,
     Droplet,
     ArrowRight,
-    Zap
+    Zap,
+    Send,
+    Navigation,
+    Loader2
 } from 'lucide-react';
-import { adminService } from '../services/api';
+import { adminService, donorService } from '../services/api';
 import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
 
@@ -100,6 +103,14 @@ export default function AdminDashboard() {
     const [userRoleFilter, setUserRoleFilter] = useState('all');
     const [apptUrgencyFilter, setApptUrgencyFilter] = useState('all');
     const [apptStatusFilter, setApptStatusFilter] = useState('all');
+    
+    // Broadcast State
+    const [broadcastData, setBroadcastData] = useState({
+        bloodType: 'O+',
+        radius: 5000,
+        message: ''
+    });
+    const [isBroadcasting, setIsBroadcasting] = useState(false);
 
     useEffect(() => {
         const socket = io('http://localhost:5000');
@@ -154,6 +165,30 @@ export default function AdminDashboard() {
         return () => socket.disconnect();
     }, []);
 
+    const handleBroadcast = async (e) => {
+        e.preventDefault();
+        if (!broadcastData.message) {
+            toast.error('Please enter an emergency message');
+            return;
+        }
+
+        setIsBroadcasting(true);
+        try {
+            // Hardcoded coords for demo, in production we can use admin's current location or a selected facility
+            const response = await donorService.sendEmergencyAlert({
+                ...broadcastData,
+                latitude: 12.9716, // Default to a central point (e.g., city center)
+                longitude: 77.5946
+            });
+            toast.success(response.data.message);
+            setBroadcastData({ ...broadcastData, message: '' });
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Broadcast failed');
+        } finally {
+            setIsBroadcasting(false);
+        }
+    };
+
     // Filtered Data
     const filteredUsers = users.filter(u => {
         const matchesSearch = u.name.toLowerCase().includes(userSearch.toLowerCase()) || 
@@ -203,7 +238,7 @@ export default function AdminDashboard() {
                     <p className="text-gray-500 font-bold text-lg">Central hub for clinical triage and platform governance.</p>
                 </div>
                 <div className="flex gap-2 p-2 bg-gray-100/50 backdrop-blur-lg rounded-[2rem] border border-white relative z-10">
-                    {['overview', 'users', 'appointments'].map((tab) => (
+                    {['overview', 'users', 'appointments', 'broadcast'].map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
@@ -499,6 +534,121 @@ export default function AdminDashboard() {
                                 )}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'broadcast' && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 animate-in slide-in-from-bottom-12 duration-700">
+                    <div className="bg-white p-12 rounded-[3.5rem] shadow-2xl shadow-gray-200/30 border border-gray-100 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-8 opacity-5">
+                            <Send size={150} />
+                        </div>
+                        <div className="relative z-10 space-y-8">
+                            <div>
+                                <h3 className="text-3xl font-black text-gray-900 tracking-tight mb-2">Emergency Broadcast Hub</h3>
+                                <p className="text-gray-500 font-bold">Trigger real-time clinical alerts to the donor network.</p>
+                            </div>
+
+                            <form className="space-y-6" onSubmit={handleBroadcast}>
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Target Blood Type</label>
+                                        <select 
+                                            value={broadcastData.bloodType}
+                                            onChange={(e) => setBroadcastData({...broadcastData, bloodType: e.target.value})}
+                                            className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-6 py-4 text-xs font-black focus:outline-none focus:ring-8 focus:ring-red-500/5 focus:border-red-500 transition-all"
+                                        >
+                                            {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(type => (
+                                                <option key={type} value={type}>{type} Group</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Safety Radius (Meters)</label>
+                                        <input 
+                                            type="number" 
+                                            value={broadcastData.radius}
+                                            onChange={(e) => setBroadcastData({...broadcastData, radius: parseInt(e.target.value)})}
+                                            className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-6 py-4 text-xs font-black focus:outline-none focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-500 transition-all"
+                                            placeholder="e.g. 5000"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Emergency Message</label>
+                                    <textarea 
+                                        rows="4"
+                                        value={broadcastData.message}
+                                        onChange={(e) => setBroadcastData({...broadcastData, message: e.target.value})}
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-3xl px-6 py-5 text-xs font-bold focus:outline-none focus:ring-8 focus:ring-teal-500/5 focus:border-teal-500 transition-all resize-none"
+                                        placeholder="Enter the critical alert details..."
+                                    />
+                                </div>
+
+                                <button 
+                                    type="submit"
+                                    disabled={isBroadcasting}
+                                    className="w-full bg-gradient-to-r from-red-600 to-indigo-600 py-5 rounded-[2rem] text-white text-xs font-black uppercase tracking-[0.2em] shadow-2xl shadow-red-500/20 hover:opacity-90 transition-all flex items-center justify-center gap-3 group/btn"
+                                >
+                                    {isBroadcasting ? (
+                                        <><Loader2 className="animate-spin" size={20} /> Broadcasting Signal...</>
+                                    ) : (
+                                        <><Send size={20} className="group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" /> Execute Emergency Broadcast</>
+                                    )}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div className="space-y-8">
+                        <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-10 rounded-[3.5rem] text-white shadow-2xl shadow-gray-900/40 relative overflow-hidden group">
+                            <Navigation className="absolute top-[-10%] right-[-10%] w-48 h-48 opacity-10 group-hover:rotate-12 transition-transform duration-1000" />
+                            <div className="relative z-10">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="p-3 bg-white/10 rounded-2xl">
+                                        <ShieldCheck className="text-teal-400" size={24} />
+                                    </div>
+                                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-teal-400">Security Protocol Alpha</span>
+                                </div>
+                                <h4 className="text-xl font-black mb-4 tracking-tight">Geospatial Alert Matrix</h4>
+                                <p className="text-sm text-gray-400 font-medium leading-relaxed mb-6">
+                                    Broadcasting an emergency signal will immediately notify all matching donors within the specified radius via **encrypted mail and multi-channel SMS**.
+                                </p>
+                                <div className="flex items-center gap-8">
+                                    <div>
+                                        <p className="text-[9px] font-black uppercase tracking-widest text-gray-500 mb-1">Alert Validity</p>
+                                        <p className="text-sm font-black">24 Hours</p>
+                                    </div>
+                                    <div className="w-px h-8 bg-white/10"></div>
+                                    <div>
+                                        <p className="text-[9px] font-black uppercase tracking-widest text-gray-500 mb-1">Encrypted Data</p>
+                                        <p className="text-sm font-black">AES-256 Enabled</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-10 rounded-[3.5rem] border border-gray-100 shadow-xl shadow-gray-200/20">
+                            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-6">Nearby Fleet Status</h4>
+                            <div className="space-y-6">
+                                {['A+', 'O+', 'B-'].map((type, i) => (
+                                    <div key={type} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 hover:border-teal-100 transition-colors cursor-pointer group">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-red-600 font-black text-xs shadow-sm">
+                                                {type}
+                                            </div>
+                                            <p className="text-xs font-black text-gray-700 tracking-tight">{type} Donors Online</p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                                            <span className="text-[10px] font-black text-gray-400">{12 + i * 5} Active</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

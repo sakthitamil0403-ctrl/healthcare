@@ -6,6 +6,7 @@ import {
     UserCheck, ChevronDown, RefreshCw, Trash2, Stethoscope, ShieldAlert, ShieldCheck,
     User, Heart, Thermometer, ClipboardList, Mic, Languages, X, Globe
 } from 'lucide-react';
+import VoiceBookingModal from '../components/VoiceBookingModal';
 
 const STATUS_CONFIG = {
     pending:   { label: 'Pending',   className: 'bg-teal-100 text-teal-700',   icon: <Clock size={11} /> },
@@ -13,39 +14,9 @@ const STATUS_CONFIG = {
     rejected:  { label: 'Rejected',  className: 'bg-red-100 text-red-700',     icon: <XCircle size={11} /> },
     completed: { label: 'Completed', className: 'bg-purple-100 text-purple-700', icon: <CheckCircle size={11} /> },
     cancelled: { label: 'Cancelled', className: 'bg-gray-100 text-gray-500',   icon: <XCircle size={11} /> },
+    missed:    { label: 'Missed',    className: 'bg-amber-100 text-amber-700', icon: <AlertCircle size={11} /> },
 };
 
-function encodeWAV(samples, sampleRate) {
-    const buffer = new ArrayBuffer(44 + samples.length * 2);
-    const view = new DataView(buffer);
-
-    function writeString(view, offset, string) {
-        for (let i = 0; i < string.length; i++) {
-            view.setUint8(offset + i, string.charCodeAt(i));
-        }
-    }
-
-    writeString(view, 0, 'RIFF');
-    view.setUint32(4, 36 + samples.length * 2, true);
-    writeString(view, 8, 'WAVE');
-    writeString(view, 12, 'fmt ');
-    view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true); // PCM format
-    view.setUint16(22, 1, true); // Mono channel
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, sampleRate * 2, true);
-    view.setUint16(32, 2, true);
-    view.setUint16(34, 16, true);
-    writeString(view, 36, 'data');
-    view.setUint32(40, samples.length * 2, true);
-
-    let offset = 44;
-    for (let i = 0; i < samples.length; i++, offset += 2) {
-        let s = Math.max(-1, Math.min(1, samples[i]));
-        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-    }
-    return new Blob([buffer], { type: 'audio/wav' });
-}
 
 const URGENCY_CONFIG = {
     emergency: { label: 'Emergency', className: 'bg-red-600 text-white border-red-700 animate-pulse', icon: <ShieldAlert size={12} /> },
@@ -113,14 +84,7 @@ export default function Appointments() {
     const [confirmCancel, setConfirmCancel] = useState(null);
     const [selectedPatient, setSelectedPatient] = useState(null); // Patient data for modal
     
-    // Voice Booking State
     const [showVoiceModal, setShowVoiceModal] = useState(false);
-    const [isRecording, setIsRecording] = useState(false);
-    const [recordingTime, setRecordingTime] = useState(0);
-    const [mediaRecorder, setMediaRecorder] = useState(null);
-    const [selectedLang, setSelectedLang] = useState('en-US'); // 'en-US' or 'ta-IN'
-    const [voiceLoading, setVoiceLoading] = useState(false);
-    const [voiceResult, setVoiceResult] = useState(null);
 
     const user = useStore(state => state.user);
 
@@ -207,75 +171,11 @@ export default function Appointments() {
     };
 
     const upcoming = appointments.filter(a => ['pending', 'approved'].includes(a.status));
-    const past = appointments.filter(a => ['completed', 'cancelled', 'rejected'].includes(a.status));
+    const past = appointments.filter(a => ['completed', 'cancelled', 'rejected', 'missed'].includes(a.status));
     const displayed = activeTab === 'upcoming' ? upcoming : past;
 
     const selectedDoctor = doctors.find(d => d.user?._id === newAppt.doctor);
 
-    // Voice Recording Logic
-    const startRecording = async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const recorder = new MediaRecorder(stream);
-            const chunks = [];
-
-            recorder.ondataavailable = (e) => chunks.push(e.data);
-            recorder.onstop = async () => {
-                const blob = new Blob(chunks, { type: 'audio/webm' });
-                try {
-                    const arrayBuffer = await blob.arrayBuffer();
-                    const audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-                    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-                    const wavBlob = encodeWAV(audioBuffer.getChannelData(0), audioBuffer.sampleRate);
-                    handleVoiceBooking(wavBlob);
-                } catch (e) {
-                    console.error("Audio Context decode failed, falling back", e);
-                    handleVoiceBooking(blob);
-                }
-                stream.getTracks().forEach(track => track.stop());
-            };
-
-            recorder.start();
-            setMediaRecorder(recorder);
-            setIsRecording(true);
-            setRecordingTime(0);
-        } catch (err) {
-            setError('Microphone access denied or error: ' + err.message);
-        }
-    };
-
-    const stopRecording = () => {
-        if (mediaRecorder) {
-            mediaRecorder.stop();
-            setIsRecording(false);
-        }
-    };
-
-    useEffect(() => {
-        let interval;
-        if (isRecording) {
-            interval = setInterval(() => setRecordingTime(t => t + 1), 1000);
-        }
-        return () => clearInterval(interval);
-    }, [isRecording]);
-
-    const handleVoiceBooking = async (blob) => {
-        setVoiceLoading(true);
-        setError('');
-        try {
-            const formData = new FormData();
-            formData.append('audio', blob, 'booking.wav');
-            formData.append('language', selectedLang);
-
-            const { data } = await appointmentService.bookVoiceAppointment(formData);
-            setVoiceResult(data);
-            await fetchAppointments();
-        } catch (err) {
-            setError(err?.response?.data?.message || 'Voice booking failed.');
-        } finally {
-            setVoiceLoading(false);
-        }
-    };
 
     return (
         <div className="space-y-6 max-w-5xl">
@@ -415,7 +315,7 @@ export default function Appointments() {
                                 )}
 
                                 {/* Actions Row */}
-                                {(canCancel || canReschedule || isManagementView) && (
+                                {(canCancel || canReschedule || isManagementView || (user?.role === 'patient' && appt.status === 'missed')) && (
                                     <div className="mt-4 pt-4 border-t border-gray-50 flex flex-wrap gap-2 items-center">
                                         {canReschedule && (
                                             <button
@@ -471,6 +371,11 @@ export default function Appointments() {
                                                     className="flex items-center gap-1.5 text-sm px-4 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 font-semibold">
                                                     <CheckCircle size={14} /> Mark Completed
                                                 </button>
+                                                <button onClick={() => handleStatusChange(appt._id, 'missed')}
+                                                    className="flex items-center gap-1.5 text-sm px-4 py-2 bg-amber-500 text-white rounded-xl hover:bg-amber-600 font-semibold">
+                                                    <AlertCircle size={14} /> Mark Missed
+                                                </button>
+
                                                 <button 
                                                     onClick={() => setSelectedPatient(appt.patientClinical || { user: appt.patient })}
                                                     className="flex items-center gap-1.5 text-sm px-4 py-2 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold"
@@ -479,12 +384,18 @@ export default function Appointments() {
                                                 </button>
                                             </>
                                         )}
-                                        {isManagementView && ['completed', 'rejected', 'cancelled'].includes(appt.status) && (
+                                        {isManagementView && ['completed', 'rejected', 'cancelled', 'missed'].includes(appt.status) && (
                                             <button 
                                                 onClick={() => setSelectedPatient(appt.patientClinical || { user: appt.patient })}
                                                 className="flex items-center gap-1.5 text-sm px-4 py-2 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold"
                                             >
                                                 <User size={14} /> View Historical Profile
+                                            </button>
+                                        )}
+                                        {user?.role === 'patient' && appt.status === 'missed' && (
+                                            <button onClick={() => { setNewAppt({ ...newAppt, doctor: appt.doctor?._id }); setShowModal(true); }}
+                                                className="flex items-center gap-1.5 text-sm px-4 py-2 bg-teal-600 text-white rounded-xl hover:bg-teal-700 font-bold shadow-lg shadow-teal-100 transition-all">
+                                                <RefreshCw size={14} /> Rebook Visit
                                             </button>
                                         )}
                                     </div>
@@ -808,145 +719,11 @@ export default function Appointments() {
                 </div>
             )}
 
-            {/* Voice Booking Modal */}
-            {showVoiceModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-[2.5rem] w-full max-w-md shadow-2xl relative overflow-hidden flex flex-col">
-                        {/* Premium Header */}
-                        <div className="bg-gradient-to-br from-teal-600 to-teal-800 p-8 pb-12 relative">
-                            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/squares.png')] opacity-10"></div>
-                            
-                            <div className="flex justify-between items-start text-white relative z-10">
-                                <div>
-                                    <h3 className="text-2xl font-black tracking-tight">AI Voice Assistant</h3>
-                                    <p className="text-teal-100 text-xs mt-1 font-semibold tracking-wider uppercase">Automatic clinical transcription</p>
-                                </div>
-                                <button onClick={() => { setShowVoiceModal(false); setVoiceResult(null); setError(''); }} className="p-2 bg-white/10 hover:bg-white/20 rounded-2xl transition-all shadow-sm">
-                                    <X size={20} />
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="p-8 -mt-6 bg-white rounded-t-3xl relative z-20 flex-1 flex flex-col">
-                            {error && (
-                                <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-700 text-sm flex items-center gap-3 animate-pulse">
-                                    <AlertCircle size={20} className="shrink-0 text-red-500" /> <span className="font-semibold">{error}</span>
-                                </div>
-                            )}
-
-                            {!voiceResult ? (
-                                <div className="flex flex-col items-center text-center">
-                                    {/* Language Selection Toggle */}
-                                    <div className="flex bg-gray-50 border border-gray-100 p-1.5 rounded-2xl mb-10 w-full max-w-[260px] shadow-sm">
-                                        <button 
-                                            onClick={() => setSelectedLang('en-US')}
-                                            className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${selectedLang === 'en-US' ? 'bg-white shadow-md text-teal-700' : 'text-gray-400 hover:text-gray-600'}`}
-                                        >
-                                            <Globe size={13} /> ENGLISH
-                                        </button>
-                                        <button 
-                                            onClick={() => setSelectedLang('ta-IN')}
-                                            className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${selectedLang === 'ta-IN' ? 'bg-white shadow-md text-teal-700 font-tamil' : 'text-gray-400 hover:text-gray-600 font-tamil'}`}
-                                        >
-                                            <Languages size={13} /> தமிழ்
-                                        </button>
-                                    </div>
-
-                                    {/* Pulse Animation & Mic Button */}
-                                    <div className="relative mb-8 mt-2">
-                                        {isRecording && (
-                                            <>
-                                                <div className="absolute inset-0 bg-red-500/20 rounded-full animate-ping scale-150 duration-1000" />
-                                                <div className="absolute inset-0 bg-red-500/10 rounded-full animate-ping scale-[2] duration-1000 delay-150" />
-                                            </>
-                                        )}
-                                        <button
-                                            onClick={isRecording ? stopRecording : startRecording}
-                                            disabled={voiceLoading}
-                                            className={`relative z-10 w-32 h-32 rounded-full flex flex-col items-center justify-center transition-all shadow-2xl ${
-                                                isRecording 
-                                                    ? 'bg-gradient-to-br from-red-500 to-rose-600 scale-110 shadow-red-500/40' 
-                                                    : 'bg-gradient-to-br from-teal-500 to-teal-700 hover:scale-105 shadow-teal-500/40 hover:shadow-teal-500/60'
-                                            } disabled:opacity-50`}
-                                        >
-                                            {voiceLoading ? (
-                                                <div className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
-                                            ) : (
-                                                <>
-                                                    <Mic size={48} className="text-white drop-shadow-md" />
-                                                    <span className="text-[10px] text-white/90 font-black mt-2 uppercase tracking-widest leading-none">
-                                                        {isRecording ? 'Stop' : 'Tap to Speak'}
-                                                    </span>
-                                                </>
-                                            )}
-                                        </button>
-                                    </div>
-
-                                    {/* Instructional Text */}
-                                    <div className="space-y-3">
-                                        <p className={`text-xl font-black ${isRecording ? 'text-red-500 animate-pulse' : 'text-gray-900'}`}>
-                                            {isRecording ? `${Math.floor(recordingTime / 60)}:${(recordingTime % 60).toString().padStart(2, '0')} Recording...` : 'Ready to listen'}
-                                        </p>
-                                        <p className="text-sm text-gray-500 max-w-[260px] leading-relaxed mx-auto">
-                                            {isRecording 
-                                                ? "Speak your name, appointment reason, and preferred time clearly." 
-                                                : "Tap the microphone to book your appointment using natural voice."}
-                                        </p>
-                                    </div>
-                                </div>
-                            ) : (
-                            <div className="space-y-6 animate-in fade-in zoom-in duration-300">
-                                <div className="bg-green-50 border border-green-100 rounded-[2rem] p-6 text-center">
-                                    <div className="w-16 h-16 bg-green-500 rounded-3xl flex items-center justify-center text-white mx-auto mb-4 shadow-lg shadow-green-100">
-                                        <CheckCircle size={32} />
-                                    </div>
-                                    <h4 className="text-xl font-black text-green-900">Booking Confirmed!</h4>
-                                    <p className="text-sm text-green-600 mt-1">{voiceResult.message}</p>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100">
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <Languages size={14} className="text-indigo-400" />
-                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Transcript ({selectedLang})</p>
-                                        </div>
-                                        <p className="text-sm text-gray-800 font-medium italic">"{voiceResult.transcript}"</p>
-                                        {voiceResult.translated && (
-                                            <div className="mt-4 pt-4 border-t border-gray-200">
-                                                <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2">English Translation</p>
-                                                <p className="text-sm text-indigo-800 font-medium italic">"{voiceResult.translated}"</p>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="p-4 bg-teal-50/50 rounded-2xl border border-teal-100">
-                                            <p className="text-[10px] font-black text-teal-400 uppercase tracking-widest mb-1">Doctor</p>
-                                            <p className="font-bold text-teal-900 truncate">{voiceResult.appointment?.doctor?.name || 'Assigned'}</p>
-                                        </div>
-                                        <div className="p-4 bg-orange-50/50 rounded-2xl border border-orange-100">
-                                            <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-1">Schedule</p>
-                                            <p className="font-bold text-orange-900 truncate">
-                                                {new Date(voiceResult.appointment?.date).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                                                <span className="mx-1 opacity-50">@</span>
-                                                {new Date(voiceResult.appointment?.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <button 
-                                    onClick={() => { setShowVoiceModal(false); setVoiceResult(null); }}
-                                    className="w-full py-4 bg-gray-900 text-white rounded-3xl font-black text-sm uppercase tracking-widest hover:bg-gray-800 shadow-xl transition-all"
-                                >
-                                    Dismiss
-                                </button>
-                            </div>
-                        )}
-                        </div>
-                    </div>
-                </div>
-            )}
+            <VoiceBookingModal 
+                isOpen={showVoiceModal} 
+                onClose={() => setShowVoiceModal(false)} 
+                onBookingSuccess={fetchAppointments} 
+            />
         </div>
     );
 }

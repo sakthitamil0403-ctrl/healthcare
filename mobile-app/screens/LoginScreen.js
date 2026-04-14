@@ -4,6 +4,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { authService } from '../utils/api';
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
+
+WebBrowser.maybeCompleteAuthSession();
 
 const { width } = Dimensions.get('window');
 
@@ -18,6 +22,39 @@ export default function LoginScreen({ navigation }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+
+    const [request, response, promptAsync] = Google.useAuthRequest({
+        webClientId: '671707785438-0ga89rsk0uf07hblnkgp2act7i6ap3ic.apps.googleusercontent.com',
+        iosClientId: '671707785438-0ga89rsk0uf07hblnkgp2act7i6ap3ic.apps.googleusercontent.com',
+        androidClientId: '671707785438-0ga89rsk0uf07hblnkgp2act7i6ap3ic.apps.googleusercontent.com',
+    });
+
+    React.useEffect(() => {
+        if (response?.type === 'success') {
+            const { authentication } = response;
+            handleGoogleLogin(authentication.idToken);
+        }
+    }, [response]);
+
+    const handleGoogleLogin = async (idToken) => {
+        setIsLoading(true);
+        try {
+            const res = await authService.loginWithGoogle(idToken);
+            const { token, user } = res.data;
+            await AsyncStorage.setItem('token', token);
+            await AsyncStorage.setItem('user', JSON.stringify(user));
+            
+            if (user.role === 'admin') {
+                navigation.navigate('AdminDashboard', { user });
+            } else {
+                navigation.navigate('Dashboard', { user });
+            }
+        } catch (error) {
+            Alert.alert('Google Login Failed', error.response?.data?.message || 'Invalid Google credentials');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const handleLogin = async () => {
         if (!email || !password) {
@@ -131,6 +168,23 @@ export default function LoginScreen({ navigation }) {
                                 Don't have an account? <Text style={styles.registerHighlight}>Create one now</Text>
                             </Text>
                         </TouchableOpacity>
+
+                        <View style={styles.divider}>
+                            <View style={styles.dividerLine} />
+                            <Text style={styles.dividerText}>OR CONNECT VIA</Text>
+                            <View style={styles.dividerLine} />
+                        </View>
+
+                        <TouchableOpacity 
+                            style={styles.googleBtn} 
+                            disabled={!request || isLoading} 
+                            onPress={() => promptAsync()}
+                        >
+                            <View style={styles.googleIconBg}>
+                                <MaterialCommunityIcons name="google" size={20} color="#EA4335" />
+                            </View>
+                            <Text style={styles.googleBtnText}>CONTINUE WITH GOOGLE</Text>
+                        </TouchableOpacity>
                     </View>
 
                 </ScrollView>
@@ -181,5 +235,20 @@ const styles = StyleSheet.create({
     loginBtnText: { color: '#fff', fontSize: 14, fontWeight: '900', letterSpacing: 1.5, marginRight: 8 },
     registerLink: { marginTop: 25, alignItems: 'center' },
     registerText: { color: '#64748b', fontSize: 13, fontWeight: '500' },
-    registerHighlight: { color: '#2dd4bf', fontWeight: 'bold' }
+    registerHighlight: { color: '#2dd4bf', fontWeight: 'bold' },
+    divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 25 },
+    dividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' },
+    dividerText: { color: '#64748b', fontSize: 10, fontWeight: '900', marginHorizontal: 15, letterSpacing: 1 },
+    googleBtn: { 
+        height: 55, 
+        backgroundColor: 'rgba(255,255,255,0.05)', 
+        borderRadius: 16, 
+        borderWidth: 1, 
+        borderColor: 'rgba(255,255,255,0.1)',
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        paddingHorizontal: 15 
+    },
+    googleIconBg: { width: 34, height: 34, backgroundColor: '#fff', borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 15 },
+    googleBtnText: { color: '#fff', fontSize: 12, fontWeight: '900', letterSpacing: 1 }
 });

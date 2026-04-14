@@ -1,27 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, FlatList, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, FlatList, Platform, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { donorService } from '../utils/api';
 import * as Location from 'expo-location';
 
-const MilkDonationItem = ({ item }) => (
+const MilkDonationItem = ({ item, onInquire }) => (
     <View style={styles.card}>
         <View style={styles.row}>
             <View style={styles.iconCircle}>
                 <MaterialCommunityIcons name="baby-bottle" size={24} color="#ec4899" />
             </View>
             <View>
-                <Text style={styles.donorName}>{item.user?.name || 'Anonymous'}</Text>
-                <Text style={styles.volumeText}>Location: {item.location?.type === 'Point' ? 'SmartMatch Found' : 'Unknown'}</Text>
+                <Text style={styles.donorName}>{item.user?.name || item.name || 'Anonymous'}</Text>
+                <Text style={styles.volumeText}>Location: {item.location?.type === 'Point' ? 'SmartMatch Found' : 'Nearby Center'}</Text>
             </View>
         </View>
         <View style={styles.statusCol}>
-            <View style={[styles.priorityBadge, styles.bgBlue]}>
-                <Text style={styles.textBlue}>
-                    MILK DONOR
-                </Text>
-            </View>
-            <Text style={styles.statusText}>Available</Text>
+            <TouchableOpacity 
+                style={[styles.contactBtn, { backgroundColor: '#fdf2f8' }]}
+                onPress={() => onInquire(item.donorId || item._id)}
+            >
+                <MaterialCommunityIcons name="message-text-outline" size={16} color="#ec4899" />
+                <Text style={[styles.contactBtnText, { color: '#ec4899' }]}>Inquire</Text>
+            </TouchableOpacity>
+            <Text style={styles.statusText}>Priority Match</Text>
         </View>
     </View>
 );
@@ -60,6 +62,15 @@ export default function MilkDonationScreen() {
             console.log('Error fetching milk donors', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleInquire = async (donorId) => {
+        try {
+            await donorService.inquireMilk({ donorId, message: "Interested in donation/pickup." });
+            Alert.alert("Success 🍼", "Secure inquiry handshake sent! The donor/bank has been notified.");
+        } catch (error) {
+            Alert.alert("Inquiry Failed", "Could not establish a secure connection at this time.");
         }
     };
 
@@ -106,7 +117,7 @@ export default function MilkDonationScreen() {
                 }
                 data={donors}
                 keyExtractor={item => item._id}
-                renderItem={({ item }) => <MilkDonationItem item={item} />}
+                renderItem={({ item }) => <MilkDonationItem item={item} onInquire={handleInquire} />}
                 contentContainerStyle={{ paddingBottom: 40 }}
                 ListEmptyComponent={
                     loading ? (
@@ -159,11 +170,17 @@ const styles = StyleSheet.create({
     iconCircle: { width: 45, height: 45, borderRadius: 25, backgroundColor: '#fdf2f8', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
     donorName: { fontSize: 16, fontWeight: 'bold', color: '#1e293b' },
     volumeText: { fontSize: 12, color: '#64748b', marginTop: 3 },
-    statusCol: { alignItems: 'flex-end' },
-    priorityBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, marginBottom: 5 },
-    bgBlue: { backgroundColor: '#dbeafe' },
-    textBlue: { color: '#3b82f6', fontSize: 10, fontWeight: 'bold' },
     statusText: { fontSize: 12, color: '#94a3b8', fontWeight: '500' },
+    contactBtn: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        paddingHorizontal: 12, 
+        paddingVertical: 6, 
+        borderRadius: 8, 
+        marginBottom: 8,
+        gap: 5
+    },
+    contactBtnText: { fontSize: 11, fontWeight: 'bold' },
     emptyContainer: { alignItems: 'center', marginTop: 50 },
     emptyText: { color: '#94a3b8', fontSize: 14, marginTop: 10 }
 });

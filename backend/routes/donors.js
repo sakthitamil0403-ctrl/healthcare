@@ -46,14 +46,16 @@ router.get('/nearby', auth(), async (req, res) => {
     try {
         const { longitude, latitude, radius = 5000 } = req.query; // radius in meters
         
-        const donors = await Donor.find({
+        let query = {
             location: {
                 $near: {
                     $geometry: { type: 'Point', coordinates: [parseFloat(longitude), parseFloat(latitude)] },
                     $maxDistance: parseInt(radius)
                 }
             }
-        }).populate('user', 'name email phone');
+        };
+
+        const donors = await Donor.find(query).populate('user', 'name email phone');
         
         const maskedDonors = donors.map(d => {
             const donor = d.toObject();

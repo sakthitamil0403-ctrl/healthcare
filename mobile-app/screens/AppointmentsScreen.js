@@ -8,7 +8,8 @@ const STATUS_COLORS = {
     approved: { label: 'Approved', bg: '#dcfce7', text: '#15803d' },
     completed: { label: 'Completed', bg: '#f3e8ff', text: '#7e22ce' },
     rejected: { label: 'Rejected', bg: '#fee2e2', text: '#b91c1c' },
-    cancelled: { label: 'Cancelled', bg: '#f1f5f9', text: '#64748b' }
+    cancelled: { label: 'Cancelled', bg: '#f1f5f9', text: '#64748b' },
+    missed: { label: 'Missed', bg: '#fff7ed', text: '#ea580c' }
 };
 
 export default function AppointmentsScreen({ route }) {
@@ -70,7 +71,7 @@ export default function AppointmentsScreen({ route }) {
     };
 
     const upcoming = appointments.filter(a => ['pending', 'approved'].includes(a.status));
-    const past = appointments.filter(a => ['completed', 'cancelled', 'rejected'].includes(a.status));
+    const past = appointments.filter(a => ['completed', 'cancelled', 'rejected', 'missed'].includes(a.status));
     const displayed = activeTab === 'upcoming' ? upcoming : past;
 
     const renderItem = ({ item }) => {
@@ -144,6 +145,24 @@ export default function AppointmentsScreen({ route }) {
                         </>
                     )}
 
+                    {!isDoctor && item.status === 'missed' && (
+                        <TouchableOpacity 
+                            style={[styles.btn, styles.btnApprove, { flexDirection: 'row' }]} 
+                            onPress={() => {
+                                const tomorrow = new Date();
+                                tomorrow.setDate(tomorrow.getDate() + 1);
+                                setRescheduleData({ 
+                                    appointmentId: item._id, 
+                                    date: tomorrow.toISOString().split('T')[0], 
+                                    time: '09:00' 
+                                });
+                            }}
+                        >
+                            <MaterialCommunityIcons name="calendar-refresh" size={16} color="#fff" style={{marginRight: 5}} />
+                            <Text style={styles.btnText}>Rebook Now</Text>
+                        </TouchableOpacity>
+                    )}
+
                     {isDoctor && item.status === 'pending' && (
                         <>
                             <TouchableOpacity style={[styles.btn, styles.btnApprove]} onPress={() => handleStatusUpdate(item._id, 'approved')}>
@@ -166,10 +185,21 @@ export default function AppointmentsScreen({ route }) {
                             <TouchableOpacity style={[styles.btn, styles.btnOutline]} onPress={() => setProfileModal(item.patientClinical || { user: item.patient })}>
                                 <Text style={styles.btnOutlineText}>Profile</Text>
                             </TouchableOpacity>
+                            <TouchableOpacity 
+                                style={[styles.btn, styles.btnMissed]} 
+                                onPress={() => {
+                                    Alert.alert("Confirm Missed", "Mark this appointment as missed?", [
+                                        { text: "Cancel", style: "cancel" },
+                                        { text: "Confirm", onPress: () => handleStatusUpdate(item._id, 'missed'), style: 'destructive' }
+                                    ]);
+                                }}
+                            >
+                                <Text style={styles.btnText}>Mark Missed</Text>
+                            </TouchableOpacity>
                         </>
                     )}
                     
-                    {isDoctor && ['completed', 'rejected', 'cancelled'].includes(item.status) && (
+                    {isDoctor && ['completed', 'rejected', 'cancelled', 'missed'].includes(item.status) && (
                          <TouchableOpacity style={[styles.btn, styles.btnOutline, { flex: undefined, paddingHorizontal: 20 }]} onPress={() => setProfileModal(item.patientClinical || { user: item.patient })}>
                             <Text style={styles.btnOutlineText}>View Historical Profile</Text>
                         </TouchableOpacity>
@@ -313,6 +343,7 @@ const styles = StyleSheet.create({
     btnApprove: { backgroundColor: '#10b981' },
     btnComplete: { backgroundColor: '#3b82f6' },
     btnReject: { backgroundColor: '#ef4444' },
+    btnMissed: { backgroundColor: '#f97316' },
     btnRejectFade: { backgroundColor: '#fef2f2', borderWidth: 1, borderColor: '#fecaca' },
     btnRejectFadeText: { color: '#ef4444', fontWeight: 'bold' },
     btnOutline: { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#cbd5e1' },

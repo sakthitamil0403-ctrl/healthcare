@@ -25,6 +25,7 @@ api.interceptors.request.use(async (config) => {
 
 export const authService = {
     login: (credentials) => api.post('/auth/login', credentials),
+    loginWithGoogle: (token, additionalData = {}) => api.post('/auth/google', { token, ...additionalData }),
     register: (userData) => api.post('/auth/register', userData),
     updateProfile: (data) => api.put('/auth/profile', data)
 };
@@ -45,10 +46,10 @@ export const patientService = {
     updateProfile: (data) => api.put('/patients/profile', data)
 };
 
-export const donorService = {
     getDonors: (params) => api.get('/donors', { params }),
     updateLocation: (coords) => api.post('/donors/location', coords),
-    sendEmergencyAlert: (data) => api.post('/donors/emergency-alert', data)
+    sendEmergencyAlert: (data) => api.post('/donors/emergency-alert', data),
+    inquireMilk: (data) => api.post('/milk/inquire', data)
 };
 
 export const adminService = {

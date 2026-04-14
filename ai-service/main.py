@@ -32,6 +32,7 @@ class ReliabilityRequest(BaseModel):
     appointment_type: str # 'routine', 'urgent', or 'specialist'
     location_id: int
     urgency: str = 'routine' # New: factor in urgency
+    missed_attendance: int = 0 # New: factor in no-shows
 
 class TriageRequest(BaseModel):
     reason: str
@@ -48,7 +49,23 @@ DISTRESS_KEYWORDS = ['severe', 'intense', 'help', 'emergency', 'painful', 'scare
 
 @app.get("/")
 async def root():
-    return {"message": "Healthcare AI Service API - Online", "version": "2.2 (Robust Distress Enabled)"}
+    ffmpeg_found = False
+    try:
+        ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+        ffmpeg_found = os.path.exists(ffmpeg_exe)
+    except:
+        pass
+        
+    return {
+        "status": "Healthcare AI Service Online",
+        "version": "2.5 (Neural Health Diagnostics)",
+        "diagnostics": {
+            "model_loaded": model is not None,
+            "ffmpeg_ready": ffmpeg_found,
+            "storage_path": os.getcwd()
+        },
+        "endpoints": ["/ai/predict-reliability", "/ai/triage", "/ai/process-voice"]
+    }
 
 @app.post("/ai/predict-reliability")
 async def predict_reliability(data: ReliabilityRequest):
@@ -59,9 +76,15 @@ async def predict_reliability(data: ReliabilityRequest):
         prob = model.predict_proba(features)[0][1]
         base_score = round(prob * 100, 2)
     else:
+        # Heuristic Logic
         if data.past_attendance < 2: base_score -= 20
         if data.age > 70 or data.age < 10: base_score += 5
     
+    # Apply No-Show penalty (Independent of model or heuristic)
+    if data.missed_attendance > 0:
+        penalty = min(60, data.missed_attendance * 25) # Heavy penalty for every no-show
+        base_score -= penalty
+        
     if data.urgency == 'emergency': base_score = min(98.0, base_score + 15)
     elif data.urgency == 'urgent': base_score = min(95.0, base_score + 8)
     return {"reliability_score": base_score, "recommendations": "Priority reminder + Call" if base_score < 70 else "Standard automated reminder"}

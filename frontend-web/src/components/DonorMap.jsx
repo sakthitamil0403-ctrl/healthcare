@@ -1,7 +1,7 @@
 import React from 'react';
 import { MapPin } from 'lucide-react';
 
-export default function DonorMap({ donors }) {
+export default function DonorMap({ donors, currentUser }) {
     return (
         <div className="relative w-full h-[500px] bg-slate-200 rounded-2xl overflow-hidden border-2 border-slate-300 shadow-inner">
             <div className="absolute inset-0 flex items-center justify-center text-slate-400 font-medium">
@@ -21,7 +21,10 @@ export default function DonorMap({ donors }) {
                         <MapPin size={24} />
                     </div>
                     <div className="hidden group-hover:block absolute top-full mt-2 bg-white p-2 rounded shadow-md z-20 w-32">
-                        <p className="text-xs font-bold">{donor.user?.name || 'Donor'}</p>
+                        <p className="text-xs font-bold">
+                            {donor.user?.name || 'Donor'}
+                            {currentUser && (donor.user?._id === currentUser._id || donor.user?._id === currentUser.id) && <span className="text-teal-600 ml-1 text-[10px] uppercase font-black">(You)</span>}
+                        </p>
                         <p className="text-[10px] text-gray-500">{donor.bloodType}</p>
                     </div>
                 </div>

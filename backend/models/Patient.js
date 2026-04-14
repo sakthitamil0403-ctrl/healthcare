@@ -5,7 +5,8 @@ const patientSchema = new mongoose.Schema({
     bloodGroup: String,
     age: Number,
     gender: { type: String, enum: ['Male', 'Female', 'Other'] },
-    medicalHistory: [String]
+    medicalHistory: [String],
+    missedCount: { type: Number, default: 0 }
 });
 
 module.exports = mongoose.model('Patient', patientSchema);

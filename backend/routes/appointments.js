@@ -93,7 +93,8 @@ router.post('/', auth(['patient']), async (req, res) => {
                 age: patientProfile?.age || 30,
                 appointment_type: urgency === 'emergency' ? 'urgent' : 'routine',
                 location_id: 1,
-                urgency: urgency
+                urgency: urgency,
+                missed_attendance: patientProfile?.missedCount || 0
             });
             reliabilityScore = reliabilityResponse.data.reliability_score;
             riskLevel = reliabilityScore >= 60 ? 'low' : 'high';
@@ -174,20 +175,26 @@ router.put('/:id/reschedule', auth(['patient']), async (req, res) => {
 router.patch('/:id/status', auth(['doctor', 'admin']), async (req, res) => {
     try {
         const { status } = req.body;
-        const allowed = ['approved', 'rejected', 'completed'];
+        const allowed = ['approved', 'rejected', 'completed', 'missed'];
         if (!allowed.includes(status)) {
             return res.status(400).json({ message: 'Invalid status' });
         }
-        const query = req.user.role === 'admin' 
-            ? { _id: req.params.id } 
-            : { _id: req.params.id, doctor: req.user.id };
 
-        const appt = await Appointment.findOneAndUpdate(
-            query,
-            { status },
-            { new: true }
-        ).populate('patient doctor', 'name email');
+        const appt = await Appointment.findById(req.params.id);
         if (!appt) return res.status(404).json({ message: 'Appointment not found' });
+
+        const oldStatus = appt.status;
+        appt.status = status;
+        await appt.save();
+
+        // Increment missedCount in patient profile if status is marked missed
+        if (status === 'missed' && oldStatus !== 'missed') {
+            await Patient.findOneAndUpdate(
+                { user: appt.patient },
+                { $inc: { missedCount: 1 } }
+            );
+        }
+
         res.json(appt);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -279,14 +286,23 @@ router.post('/voice-booking', auth(['patient']), upload.single('audio'), async (
         });
 
     } catch (err) {
+        if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
+            console.error('AI Service is offline or unreachable at:', process.env.AI_SERVICE_URL);
+            return res.status(503).json({ 
+                message: 'Neural AI Service is temporarily offline. Please ensure the AI microservice is running on port 8000.',
+                suggestion: 'Run: cd ai-service && python main.py'
+            });
+        }
+
         if (err.response) {
             const status = err.response.status;
             const message = err.response.data?.detail || err.response.data?.message || err.message;
-            console.error(`Voice booking error ${status}:`, message);
-            return res.status(status).json({ message });
+            console.error(`AI Service error ${status}:`, message);
+            return res.status(status).json({ message: `AI Service Error: ${message}` });
         }
-        console.error('Voice booking error:', err.message);
-        res.status(500).json({ message: 'Failed to process voice booking: ' + err.message });
+        
+        console.error('Voice booking internal error:', err.message);
+        res.status(500).json({ message: 'Internal system error during voice processing: ' + err.message });
     }
 });
 

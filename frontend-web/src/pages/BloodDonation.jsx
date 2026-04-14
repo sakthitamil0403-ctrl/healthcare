@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { donorService } from '../services/api';
 import DonorMap from '../components/DonorMap';
+import useStore from '../store/useStore';
 import { Droplet, Search, Filter, MapPin, Loader2, Navigation, ShieldAlert, Send, X, CheckCircle } from 'lucide-react';
 
 export default function BloodDonation() {
+    const user = useStore(state => state.user);
     const [donors, setDonors] = useState([]);
     const [loading, setLoading] = useState(false);
     const [radius, setRadius] = useState(5000); // 5km default
@@ -138,7 +140,7 @@ export default function BloodDonation() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden min-h-[500px]">
-                    <DonorMap donors={donors} />
+                    <DonorMap donors={donors} currentUser={user} />
                 </div>
                 
                 <div className="flex flex-col gap-6">
@@ -162,10 +164,13 @@ export default function BloodDonation() {
                                                 {donor.bloodType}
                                             </div>
                                             <div>
-                                                <p className="font-extrabold text-gray-800">{donor.user?.name}</p>
+                                                <p className="font-extrabold text-gray-800">
+                                                    {donor.user?.name}
+                                                    {user && (donor.user?._id === user._id || donor.user?._id === user.id) && <span className="text-teal-600 ml-2 text-[10px] font-black uppercase">(You)</span>}
+                                                </p>
                                                 <p className="text-xs text-gray-400 font-medium flex items-center gap-1">
                                                     <MapPin size={10} />
-                                                    {donor.location?.coordinates?.join(', ') || 'Remote'}
+                                                    {donor.location?.coordinates ? donor.location.coordinates.map(c => Number(c).toFixed(4)).join(', ') : 'Remote'}
                                                 </p>
                                             </div>
                                         </div>

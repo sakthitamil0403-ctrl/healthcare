@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/api';
 import useStore from '../store/useStore';
+import { GoogleLogin } from '@react-oauth/google';
 import { 
     UserPlus, Mail, Lock, User, PlusCircle, MapPin, 
     CheckCircle, Droplet, ArrowRight, Activity, 
@@ -99,6 +100,30 @@ export default function Register() {
             navigate('/dashboard');
         } catch (err) {
             setError(err.response?.data?.message || 'Registration failed. System timeout.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleGoogleSuccess = async (credentialResponse) => {
+        if (needsLocation && !formData.location) {
+            setLocationError('📍 Location is required for Donor registration. Please enable your location before using Google.');
+            return;
+        }
+
+        setIsLoading(true);
+        setError('');
+        try {
+            const { data } = await authService.loginWithGoogle(credentialResponse.credential, {
+                role: formData.role,
+                bloodType: formData.bloodType,
+                donationType: formData.donationType,
+                location: formData.location
+            });
+            setUser(data.user, data.token);
+            navigate('/dashboard');
+        } catch (err) {
+            setError(err.response?.data?.message || 'Google registration failed. Please try again.');
         } finally {
             setIsLoading(false);
         }
@@ -329,6 +354,27 @@ export default function Register() {
                                     : <>Register Account <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" /></>
                                 )}
                             </button>
+
+                            <div className="relative my-6">
+                                <div className="absolute inset-0 flex items-center">
+                                    <div className="w-full border-t border-white/10"></div>
+                                </div>
+                                <div className="relative flex justify-center text-[10px] font-black uppercase tracking-[0.3em]">
+                                    <span className="bg-slate-900 px-4 text-gray-500">Neural Connect</span>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-center">
+                                <GoogleLogin
+                                    onSuccess={handleGoogleSuccess}
+                                    onError={() => setError('Google Authentication Failed')}
+                                    useOneTap
+                                    theme="filled_blue"
+                                    shape="pill"
+                                    text="signup_with"
+                                    width="100%"
+                                />
+                            </div>
                         </form>
 
                         <div className="text-center">

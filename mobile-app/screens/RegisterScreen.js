@@ -4,6 +4,11 @@ import * as Location from 'expo-location';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { authService } from '../utils/api';
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function RegisterScreen({ navigation }) {
     const [name, setName] = useState('');
@@ -17,6 +22,46 @@ export default function RegisterScreen({ navigation }) {
     const [donationType, setDonationType] = useState('blood');
     const [location, setLocation] = useState(null);
     const [isLocating, setIsLocating] = useState(false);
+
+    const [request, response, promptAsync] = Google.useAuthRequest({
+        webClientId: '671707785438-0ga89rsk0uf07hblnkgp2act7i6ap3ic.apps.googleusercontent.com',
+        iosClientId: '671707785438-0ga89rsk0uf07hblnkgp2act7i6ap3ic.apps.googleusercontent.com',
+        androidClientId: '671707785438-0ga89rsk0uf07hblnkgp2act7i6ap3ic.apps.googleusercontent.com',
+    });
+
+    React.useEffect(() => {
+        if (response?.type === 'success') {
+            const { authentication } = response;
+            handleGoogleRegister(authentication.idToken);
+        }
+    }, [response]);
+
+    const handleGoogleRegister = async (idToken) => {
+        if (role === 'donor' && !location) {
+            Alert.alert('Location Required', 'Please secure your location before registering with Google.');
+            return;
+        }
+        
+        setIsLoading(true);
+        try {
+            const res = await authService.loginWithGoogle(idToken, {
+                role,
+                bloodType: role === 'donor' ? bloodType : undefined,
+                donationType: role === 'donor' ? donationType : undefined,
+                location: role === 'donor' ? location : undefined
+            });
+            const { token, user } = res.data;
+            await AsyncStorage.setItem('token', token);
+            await AsyncStorage.setItem('user', JSON.stringify(user));
+            
+            Alert.alert('Success', `Welcome, ${user.name}!`);
+            navigation.navigate('Dashboard', { user });
+        } catch (error) {
+            Alert.alert('Google Auth Failed', error.response?.data?.message || 'Verification failed');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const handleGetLocation = async () => {
         setIsLocating(true);
@@ -276,6 +321,23 @@ export default function RegisterScreen({ navigation }) {
                                 ALREADY HAVE AN IDENTITY? <Text style={styles.footerHighlight}>SIGN IN SYSTEM</Text>
                             </Text>
                         </TouchableOpacity>
+
+                        <View style={styles.divider}>
+                            <View style={styles.dividerLine} />
+                            <Text style={styles.dividerText}>OR CONNECT VIA</Text>
+                            <View style={styles.dividerLine} />
+                        </View>
+
+                        <TouchableOpacity 
+                            style={styles.googleBtn} 
+                            disabled={!request || isLoading} 
+                            onPress={() => promptAsync()}
+                        >
+                            <View style={styles.googleIconBg}>
+                                <MaterialCommunityIcons name="google" size={20} color="#EA4335" />
+                            </View>
+                            <Text style={styles.googleBtnText}>REGISTER WITH GOOGLE</Text>
+                        </TouchableOpacity>
                     </View>
                     <View style={{ height: 60 }} />
                 </ScrollView>
@@ -350,6 +412,22 @@ const styles = StyleSheet.create({
     
     footerLink: { marginTop: 30, alignItems: 'center' },
     footerText: { color: '#64748b', fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
-    footerHighlight: { color: '#2dd4bf' }
+    footerHighlight: { color: '#2dd4bf' },
+    
+    divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 25 },
+    dividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' },
+    dividerText: { color: '#64748b', fontSize: 10, fontWeight: '900', marginHorizontal: 15, letterSpacing: 1 },
+    googleBtn: { 
+        height: 55, 
+        backgroundColor: 'rgba(255,255,255,0.05)', 
+        borderRadius: 16, 
+        borderWidth: 1, 
+        borderColor: 'rgba(255,255,255,0.1)',
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        paddingHorizontal: 15 
+    },
+    googleIconBg: { width: 34, height: 34, backgroundColor: '#fff', borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 15 },
+    googleBtnText: { color: '#fff', fontSize: 12, fontWeight: '900', letterSpacing: 1 }
 });
 
